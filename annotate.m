@@ -58,16 +58,14 @@ global str_imDir;      % parent dir of where the image/frame files are
 global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg)
 global int_curr_video; % number of the video currently
 global int_max_frames; % maximum possible frame number for the current video
-global str_seq;
 global file_prefix;    % prefix string for the image/frame files 
 global str_dir;        % 'self shot' or 'from web'
 global int_max_videos;
 
 file_prefix = 'self';
-str_seq = strcat(file_prefix,'%05d');
 str_dir = 'self shot';
 
-int_max_videos = length(dir(fullfile(strcat('/home/is/Occlusion Video Data/',str_dir),'self*')));
+int_max_videos = length(dir(fullfile(strcat('/home/is/Occlusion Video Data/',str_dir),strcat(file_prefix,'*'))));
 int_curr_video = 1;
 
 % Initialize all other variables
@@ -108,7 +106,6 @@ function load_curr_video()
 global bool_is_paused; % Boolean, indicates if the playback is paused
 global int_curr_frame; % number of the frame currently in view
 global int_max_frames; % maximum possible frame number for the current video
-global str_seq;        % contains 'self%05d' or 'web%05d' REMOVE TODO
 global str_dir;        % contains 'self shot' or 'from web'
 global int_curr_video; % current video number in the str_dir folder.
 global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
