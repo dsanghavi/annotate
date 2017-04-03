@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 03-Apr-2017 16:26:56
+% Last Modified by GUIDE v2.5 03-Apr-2017 16:55:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,21 +52,21 @@ function annotate_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to annotate (see VARARGIN)
-global is_paused;
-global curr_frame;
-global imDir;
-global imFiles;
-global curr_file;
-global max_frames;
-global seq_str;
-global dir_str;
+global bool_is_paused;
+global int_curr_frame;
+global str_imDir;
+global list_imFiles;
+global int_curr_file;
+global int_max_frames;
+global str_seq;
+global str_dir;
 
-seq_str = strcat('self','%05d');
-dir_str = 'self shot';
-curr_file = 3;
+str_seq = strcat('self','%05d');
+str_dir = 'self shot';
+int_curr_file = 3;
 
 % Initialize all other variables
-new_file();
+load_curr_file();
 
 % Choose default command line output for annotate
 handles.output = hObject;
@@ -77,7 +77,7 @@ guidata(hObject, handles);
 % This sets up the initial plot - only do when we are invisible
 % so window can get raised using annotate.
 %if strcmp(get(hObject,'Visible'),'off')
-%    imshow(imread(fullfile(imDir, imFiles{curr_frame})));
+%    imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
 %end
 
 % UIWAIT makes annotate wait for user response (see UIRESUME)
@@ -96,25 +96,27 @@ varargout{1} = handles.output;
 disp('---------------------------------------------');
 
 
-function new_file()
-% Update the curr_file BEFORE calling this function.
-global is_paused;
-global curr_frame;
-global max_frames;
-global seq_str;
-global dir_str;
-global curr_file;
-global imFiles;
-global imDir;
-is_paused = true;
-curr_frame = 1;
-seq_name = sprintf(seq_str,curr_file); 
-imDir = sprintf(strcat('/home/is/Occlusion Video Data/',dir_str,'/%s'), seq_name);
-imageList = dir(fullfile(imDir, '*.jpg'));
-imFiles = {imageList.name};    
-max_frames = length(imageList);
+function load_curr_file()
+% Initializes all the variables required for a new file.
+% Update the int_curr_file BEFORE calling this function.
+
+global bool_is_paused;
+global int_curr_frame;
+global int_max_frames; 
+global str_seq; % contains 'self%05d' or 'web%05d'
+global str_dir; % contains 'self shot' or 'from web'
+global int_curr_file; % int.
+global list_imFiles;
+global str_imDir;
+bool_is_paused = true;
+int_curr_frame = 1;
+seq_name = sprintf(str_seq,int_curr_file); 
+str_imDir = sprintf(strcat('/home/is/Occlusion Video Data/',str_dir,'/%s'), seq_name);
+imageList = dir(fullfile(str_imDir, '*.jpg'));
+list_imFiles = {imageList.name};    
+int_max_frames = length(imageList);
 clear imageList
-imshow(imread(fullfile(imDir, imFiles{curr_frame})));
+imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
 
 
 % --- Executes when user attempts to close figure1.
@@ -124,8 +126,8 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-global is_paused;
-is_paused = true;
+global bool_is_paused;
+bool_is_paused = true;
 pause(0.01);
 % DELETE ALL OTHER VARIABLES??
 delete(hObject);
@@ -136,8 +138,8 @@ function button_pause_Callback(hObject, eventdata, handles)
 % hObject    handle to button_pause (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global is_paused;
-is_paused = ~is_paused;
+global bool_is_paused;
+bool_is_paused = ~bool_is_paused;
 pause(0.01);
 uicontrol(handles.text_status); % divert focus
 % so that keyboard callback is only triggered on figure 1 and not the button as well.
@@ -145,34 +147,34 @@ play(handles);
 
 
 function play(handles) 
-% ONLY 1 thread should run this when is_paused==false
-global is_paused;
-global curr_frame;
-global max_frames;
-global imDir;
-global imFiles;
+% ONLY 1 thread should run this when bool_is_paused==false
+global bool_is_paused;
+global int_curr_frame;
+global int_max_frames;
+global str_imDir;
+global list_imFiles;
 axes(handles.axes1);
-while ~is_paused
+while ~bool_is_paused
     cla;
-    imshow(imread(fullfile(imDir, imFiles{curr_frame})));
-    set(handles.curr_frame,'String',curr_frame); % Show the current frame on the GUI
+    imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
+    set(handles.curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
     drawnow;
     pause(0.01); % approx 33 fps in original dim
-    curr_frame = curr_frame + 1;
-    if curr_frame > (max_frames-1)
-        is_paused = true;
+    int_curr_frame = int_curr_frame + 1;
+    if int_curr_frame > (int_max_frames-1)
+        bool_is_paused = true;
         set(handles.text_status,'String','max frames exceeded');
     end
 end
 
 
 function display_curr_frame(handles)
-global curr_frame;
-global imDir;
-global imFiles;
+global int_curr_frame;
+global str_imDir;
+global list_imFiles;
 axes(handles.axes1);
 cla;
-im = imread(fullfile(imDir, imFiles{curr_frame}));
+im = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
 imshow(im);
 %drawnow;
 
@@ -184,30 +186,30 @@ function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
 %	Character: character interpretation of the key(s) that was pressed
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
-global curr_frame;
-global max_frames;
-global is_paused;
+global int_curr_frame;
+global int_max_frames;
+global bool_is_paused;
 switch eventdata.Key
     case 'leftarrow'
-        curr_frame = curr_frame - 10;
-        is_paused = true;
-        if curr_frame < 1
-            curr_frame = 1;
+        int_curr_frame = int_curr_frame - 10;
+        bool_is_paused = true;
+        if int_curr_frame < 1
+            int_curr_frame = 1;
             set(handles.text_status,'String','curr_frame underflow');
         end
         display_curr_frame(handles);
-        set(handles.curr_frame, 'String', num2str(curr_frame));
+        set(handles.curr_frame, 'String', num2str(int_curr_frame));
     case 'rightarrow'
-        curr_frame = curr_frame + 10;
-        is_paused = true;
-        if curr_frame > (max_frames-1)
-            curr_frame = max_frames-1;
+        int_curr_frame = int_curr_frame + 10;
+        bool_is_paused = true;
+        if int_curr_frame > (int_max_frames-1)
+            int_curr_frame = int_max_frames-1;
             set(handles.text_status,'String','max frames exceeded');
         end
         display_curr_frame(handles);
-        set(handles.curr_frame, 'String',num2str(curr_frame));
+        set(handles.curr_frame, 'String',num2str(int_curr_frame));
     case 'space'
-        is_paused = ~is_paused;
+        bool_is_paused = ~bool_is_paused;
         play(handles);
         % h = gco; % get the UIControl currently in focus.
         %try
@@ -216,7 +218,7 @@ switch eventdata.Key
         %    x = false;
         %end
         %if ~x
-        %    is_paused = ~is_paused; 
+        %    bool_is_paused = ~bool_is_paused; 
         %    play(handles);
         %end
         % Above part not needed anymore as we are diverting focus as soon
@@ -234,3 +236,11 @@ end
 
 function enter_pressed(handles)
 disp('Enter pressed');
+
+
+% --- Executes on button press in button_next_file.
+function button_next_file_Callback(hObject, eventdata, handles)
+% hObject    handle to button_next_file (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
