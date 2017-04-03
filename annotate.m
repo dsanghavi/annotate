@@ -1,3 +1,5 @@
+% xinput set-prop 12 306 1 0
+
 function varargout = annotate(varargin)
 % ANNOTATE MATLAB code for annotate.fig
 %      ANNOTATE, by itself, creates a new ANNOTATE or raises the existing
@@ -22,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 18-Mar-2017 22:07:52
+% Last Modified by GUIDE v2.5 03-Apr-2017 16:26:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -112,7 +114,7 @@ is_paused = true;
 curr_frame = 1;
 
 % building imDir string
-seq_name = sprintf('%s_%05d',file_prefix,curr_file); 
+seq_name = sprintf('%s%05d',file_prefix,curr_file); 
 imDir = fullfile('/home/is/Occlusion Video Data', dir_str, seq_name);
 
 imageList = dir(fullfile(imDir, '*.jpg'));
@@ -138,9 +140,9 @@ pause(0.01);
 delete(hObject);
 
 
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)
+% --- Executes on button press in button_pause.
+function button_pause_Callback(hObject, eventdata, handles)
+% hObject    handle to button_pause (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global is_paused;
@@ -151,7 +153,7 @@ pause(0.01);
 
 % divert focus so that keyboard callback is only triggered on figure 1
 % and not the button as well.
-uicontrol(handles.text1); 
+uicontrol(handles.text_status); 
 
 play(handles);
 
@@ -176,7 +178,7 @@ while ~is_paused
     curr_frame = curr_frame + 1;
     if curr_frame > (max_frames-1)
         is_paused = true;
-        set(handles.text1,'String','max frames exceeded');
+        set(handles.text_status,'String','max frames exceeded');
     end
 end
 
@@ -212,7 +214,7 @@ switch eventdata.Key
         is_paused = true;
         if curr_frame < 1
             curr_frame = 1;
-            set(handles.text1,'String','curr_frame underflow');
+            set(handles.text_status,'String','curr_frame underflow');
         end
         display_curr_frame(handles);
         set(handles.curr_frame, 'String', num2str(curr_frame));
@@ -221,17 +223,25 @@ switch eventdata.Key
         is_paused = true;
         if curr_frame > (max_frames-1)
             curr_frame = max_frames-1;
-            set(handles.text1,'String','max frames exceeded');
+            set(handles.text_status,'String','max frames exceeded');
         end
         display_curr_frame(handles);
         set(handles.curr_frame, 'String',num2str(curr_frame));
     case 'space'
-        h = gco; % get the UIControl currently in focus.
-        x = strcmp(get(h,'String'),'Pause');
-        if ~x
-            is_paused = ~is_paused; 
-            play(handles);
-        end
+        is_paused = ~is_paused;
+        play(handles);
+        % h = gco; % get the UIControl currently in focus.
+        %try
+        %    x = strcmp(get(h,'String'),'Pause');
+        %catch
+        %    x = false;
+        %end
+        %if ~x
+        %    is_paused = ~is_paused; 
+        %    play(handles);
+        %end
+        % Above part not needed anymore as we are diverting focus as soon
+        % as the button is pressed anyway!
     case 'return'
         enter_pressed(handles);
     otherwise
