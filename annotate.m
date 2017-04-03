@@ -50,16 +50,17 @@ function annotate_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to annotate (see VARARGIN)
-global is_paused;
-global curr_frame;
-global imDir;
-global imFiles;
-global curr_file;
-global max_frames;
-global seq_str;
-global dir_str;
 
-seq_str = strcat('self','%05d');
+global is_paused;   % Boolean, indicates if the playback is paused
+global curr_frame;  % number of the frame currently in view
+global imDir;       % parent dir of where the image/frame files are
+global imFiles;     % cell of all image/frame filenames (e.g. self00021_00023.jpg)
+global curr_file;   % number of the video currently
+global max_frames;  % maximum possible frame number for the current video
+global file_prefix; % prefix string for the image/frame files 
+global dir_str;     % 'self shot' or 'from web'
+
+file_prefix = 'self';
 dir_str = 'self shot';
 curr_file = 3;
 
@@ -96,22 +97,30 @@ disp('---------------------------------------------');
 
 function new_file()
 % Update the curr_file BEFORE calling this function.
-global is_paused;
-global curr_frame;
-global max_frames;
-global seq_str;
-global dir_str;
-global curr_file;
-global imFiles;
-global imDir;
+
+global is_paused;   % Boolean, indicates if the playback is paused
+global curr_frame;  % number of the frame currently in view
+global imDir;       % parent dir of where the image/frame files are
+global imFiles;     % cell of all image/frame filenames (e.g. self00021_00023.jpg)
+global curr_file;   % number of the video currently
+global max_frames;  % maximum possible frame number for the current video
+global file_prefix; % prefix string for the image/frame files 
+global dir_str;     % 'self shot' or 'from web'
+
+% initial settings
 is_paused = true;
 curr_frame = 1;
-seq_name = sprintf(seq_str,curr_file); 
-imDir = sprintf(strcat('/home/is/Occlusion Video Data/',dir_str,'/%s'), seq_name);
+
+% building imDir string
+seq_name = sprintf('%s_%05d',file_prefix,curr_file); 
+imDir = fullfile('/home/is/Occlusion Video Data', dir_str, seq_name);
+
 imageList = dir(fullfile(imDir, '*.jpg'));
 imFiles = {imageList.name};    
 max_frames = length(imageList);
 clear imageList
+
+% TODO: should use axes(handles??) here before imshow???
 imshow(imread(fullfile(imDir, imFiles{curr_frame})));
 
 
@@ -125,7 +134,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 global is_paused;
 is_paused = true;
 pause(0.01);
-% DELETE ALL OTHER VARIABLES??
+% TODO: DELETE ALL OTHER VARIABLES???
 delete(hObject);
 
 
@@ -135,21 +144,29 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global is_paused;
+
 is_paused = ~is_paused;
+
 pause(0.01);
-uicontrol(handles.text1); % divert focus
-% so that keyboard callback is only triggered on figure 1 and not the button as well.
+
+% divert focus so that keyboard callback is only triggered on figure 1
+% and not the button as well.
+uicontrol(handles.text1); 
+
 play(handles);
 
 
 function play(handles) 
 % ONLY 1 thread should run this when is_paused==false
+
 global is_paused;
 global curr_frame;
 global max_frames;
 global imDir;
 global imFiles;
+
 axes(handles.axes1);
+
 while ~is_paused
     cla;
     imshow(imread(fullfile(imDir, imFiles{curr_frame})));
@@ -165,9 +182,11 @@ end
 
 
 function display_curr_frame(handles)
+
 global curr_frame;
 global imDir;
 global imFiles;
+
 axes(handles.axes1);
 cla;
 im = imread(fullfile(imDir, imFiles{curr_frame}));
@@ -182,9 +201,11 @@ function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
 %	Character: character interpretation of the key(s) that was pressed
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
+
 global curr_frame;
 global max_frames;
 global is_paused;
+
 switch eventdata.Key
     case 'leftarrow'
         curr_frame = curr_frame - 10;
