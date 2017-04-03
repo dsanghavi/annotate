@@ -58,14 +58,16 @@ global curr_file;
 global max_frames;
 global seq_str;
 global dir_str;
-seq_str = strcat('web','%05d');
-dir_str = 'from web';
+
+seq_str = strcat('self','%05d');
+dir_str = 'self shot';
 curr_file = 3;
+
+% Initialize all other variables
 new_file();
 
 % Choose default command line output for annotate
 handles.output = hObject;
-
 % Update handles structure
 guidata(hObject, handles);
 
@@ -105,7 +107,7 @@ global imDir;
 is_paused = true;
 curr_frame = 1;
 seq_name = sprintf(seq_str,curr_file); 
-imDir = sprintf(strcat('/home/darpan/sem2/is/Occlusion Video Data/',dir_str,'/%s'), seq_name);
+imDir = sprintf(strcat('/home/is/Occlusion Video Data/',dir_str,'/%s'), seq_name);
 imageList = dir(fullfile(imDir, '*.jpg'));
 imFiles = {imageList.name};    
 max_frames = length(imageList);
