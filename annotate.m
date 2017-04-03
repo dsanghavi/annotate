@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 03-Apr-2017 16:55:53
+% Last Modified by GUIDE v2.5 03-Apr-2017 18:00:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,17 +56,20 @@ global bool_is_paused;
 global int_curr_frame;
 global str_imDir;
 global list_imFiles;
-global int_curr_file;
+global int_curr_video;
 global int_max_frames;
 global str_seq;
 global str_dir;
+global int_max_videos;
 
 str_seq = strcat('self','%05d');
 str_dir = 'self shot';
-int_curr_file = 3;
+
+int_max_videos = length(dir(fullfile(strcat('/home/is/Occlusion Video Data/',str_dir),'self*')));
+int_curr_video = 1;
 
 % Initialize all other variables
-load_curr_file();
+load_curr_video();
 
 % Choose default command line output for annotate
 handles.output = hObject;
@@ -96,21 +99,22 @@ varargout{1} = handles.output;
 disp('---------------------------------------------');
 
 
-function load_curr_file()
-% Initializes all the variables required for a new file.
-% Update the int_curr_file BEFORE calling this function.
+function load_curr_video()
+% Initializes all the variables required for a new file, and displays the
+% first frame. Update the int_curr_video BEFORE calling this function.
 
 global bool_is_paused;
 global int_curr_frame;
 global int_max_frames; 
 global str_seq; % contains 'self%05d' or 'web%05d'
 global str_dir; % contains 'self shot' or 'from web'
-global int_curr_file; % int.
-global list_imFiles;
-global str_imDir;
-bool_is_paused = true;
-int_curr_frame = 1;
-seq_name = sprintf(str_seq,int_curr_file); 
+global int_curr_video; % current video number in the str_dir folder.
+global str_imDir; % the complete path of the current video folder
+global list_imFiles; % all '*.jpg' file names in the current video folder.
+
+bool_is_paused = true; % default
+int_curr_frame = 1; % default
+seq_name = sprintf(str_seq,int_curr_video); 
 str_imDir = sprintf(strcat('/home/is/Occlusion Video Data/',str_dir,'/%s'), seq_name);
 imageList = dir(fullfile(str_imDir, '*.jpg'));
 list_imFiles = {imageList.name};    
@@ -243,4 +247,12 @@ function button_next_file_Callback(hObject, eventdata, handles)
 % hObject    handle to button_next_file (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+global int_max_videos;
+global int_curr_video;
+if int_curr_video<int_max_videos
+    int_curr_video = int_curr_video + 1;
+    load_curr_video(); % initializes the other variables corresponding to the new video, and displays the first frame.
+else
+    disp('Reached maximum video limit. Display this in status bar.');
+end
+uicontrol(handles.text_status); % divert focus
