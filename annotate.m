@@ -52,17 +52,19 @@ function annotate_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to annotate (see VARARGIN)
-global bool_is_paused;
-global int_curr_frame;
-global str_imDir;
-global list_imFiles;
-global int_curr_video;
-global int_max_frames;
+global bool_is_paused; % Boolean, indicates if the playback is paused
+global int_curr_frame; % number of the frame currently in view
+global str_imDir;      % parent dir of where the image/frame files are
+global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg)
+global int_curr_video; % number of the video currently
+global int_max_frames; % maximum possible frame number for the current video
 global str_seq;
-global str_dir;
+global file_prefix;    % prefix string for the image/frame files 
+global str_dir;        % 'self shot' or 'from web'
 global int_max_videos;
 
-str_seq = strcat('self','%05d');
+file_prefix = 'self';
+str_seq = strcat(file_prefix,'%05d');
 str_dir = 'self shot';
 
 int_max_videos = length(dir(fullfile(strcat('/home/is/Occlusion Video Data/',str_dir),'self*')));
@@ -103,25 +105,30 @@ function load_curr_video()
 % Initializes all the variables required for a new file, and displays the
 % first frame. Update the int_curr_video BEFORE calling this function.
 
-global bool_is_paused;
-global int_curr_frame;
-global int_max_frames; 
-global str_seq; % contains 'self%05d' or 'web%05d'
-global str_dir; % contains 'self shot' or 'from web'
+global bool_is_paused; % Boolean, indicates if the playback is paused
+global int_curr_frame; % number of the frame currently in view
+global int_max_frames; % maximum possible frame number for the current video
+global str_seq;        % contains 'self%05d' or 'web%05d' REMOVE TODO
+global str_dir;        % contains 'self shot' or 'from web'
 global int_curr_video; % current video number in the str_dir folder.
-global str_imDir; % the complete path of the current video folder
-global list_imFiles; % all '*.jpg' file names in the current video folder.
+global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
+global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
+global file_prefix; % prefix string for the image/frame files 
 
+% initial settings
 bool_is_paused = true; % default
 int_curr_frame = 1; % default
-seq_name = sprintf(str_seq,int_curr_video); 
-str_imDir = sprintf(strcat('/home/is/Occlusion Video Data/',str_dir,'/%s'), seq_name);
+
+% building imDir string
+seq_name = sprintf('%s%05d',file_prefix,int_curr_video); 
+str_imDir = fullfile('/home/is/Occlusion Video Data', str_dir, seq_name);
+
 imageList = dir(fullfile(str_imDir, '*.jpg'));
 list_imFiles = {imageList.name};    
 int_max_frames = length(imageList);
 clear imageList
+% TODO: should use axes(handles??) here before imshow???
 imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
-
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
@@ -133,7 +140,7 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 global bool_is_paused;
 bool_is_paused = true;
 pause(0.01);
-% DELETE ALL OTHER VARIABLES??
+% TODO: DELETE ALL OTHER VARIABLES???
 delete(hObject);
 
 
@@ -143,10 +150,14 @@ function button_pause_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global bool_is_paused;
+
 bool_is_paused = ~bool_is_paused;
 pause(0.01);
-uicontrol(handles.text_status); % divert focus
-% so that keyboard callback is only triggered on figure 1 and not the button as well.
+
+% divert focus so that keyboard callback is only triggered on figure 1
+% and not the button as well.
+uicontrol(handles.text_status); 
+
 play(handles);
 
 
@@ -157,6 +168,7 @@ global int_curr_frame;
 global int_max_frames;
 global str_imDir;
 global list_imFiles;
+
 axes(handles.axes1);
 while ~bool_is_paused
     cla;
@@ -176,6 +188,7 @@ function display_curr_frame(handles)
 global int_curr_frame;
 global str_imDir;
 global list_imFiles;
+
 axes(handles.axes1);
 cla;
 im = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
@@ -193,6 +206,7 @@ function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
 global int_curr_frame;
 global int_max_frames;
 global bool_is_paused;
+
 switch eventdata.Key
     case 'leftarrow'
         int_curr_frame = int_curr_frame - 10;
