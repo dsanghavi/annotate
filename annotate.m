@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 03-Apr-2017 20:17:47
+% Last Modified by GUIDE v2.5 03-Apr-2017 21:47:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -100,6 +100,103 @@ varargout{1} = handles.output;
 disp('---------------------------------------------');
 
 
+function load_curr_bbox(handles)
+% Initializes all the variables required for a new file, and displays the
+% first frame. Update the int_curr_bbox BEFORE calling this function.
+
+global bool_is_paused; % Boolean, indicates if the playback is paused
+global int_curr_frame; % number of the frame currently in view
+global int_max_frames; % maximum possible frame number for the current video
+global str_dir;        % contains 'self shot' or 'from web'
+global int_curr_video; % current video number in the str_dir folder.
+global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
+global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
+global file_prefix;    % prefix string for the image/frame files 
+global str_curr_video_name; % current video name
+global int_start_frame;
+global int_end_frame;
+global int_curr_chunk;
+global int_max_chunks;
+global int_curr_bbox;
+global int_max_bboxes;
+global arr_curr_box;
+global str_curr_chunk_name;
+global list_bboxes;
+
+if int_curr_bbox > int_max_bboxes
+    int_curr_chunk = int_curr_chunk + 1;
+    load_curr_chunk(handles)
+else
+    bool_is_paused = true; % shifted to load_curr_bbox
+
+    arr_curr_box = str2num(list_bboxes{int_curr_bbox});
+
+    int_curr_frame = int_start_frame; % default
+    int_max_frames = int_end_frame;
+
+    imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame}))); % shifted to bbox
+    rectangle('Position',arr_curr_box,...
+                      'EdgeColor', 'r',...
+                      'LineStyle','-');
+
+    % Update corresponding GUI text
+    set(handles.text_curr_frame,'String',int_curr_frame);
+    set(handles.text_curr_video,'String',sprintf('%s, %s, %d', str_curr_video_name, str_curr_chunk_name, int_curr_bbox));
+end
+
+
+
+function load_curr_chunk(handles)
+% Initializes all the variables required for a new file, and displays the
+% first frame. Update the int_curr_chunk BEFORE calling this function.
+
+global bool_is_paused; % Boolean, indicates if the playback is paused
+global int_curr_frame; % number of the frame currently in view
+global int_max_frames; % maximum possible frame number for the current video
+global str_dir;        % contains 'self shot' or 'from web'
+global int_curr_video; % current video number in the str_dir folder.
+global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
+global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
+global file_prefix;    % prefix string for the image/frame files 
+global str_curr_video_name; % current video name
+global int_start_frame;
+global int_end_frame;
+global int_curr_chunk;
+global int_max_chunks;
+global int_curr_bbox;
+global int_max_bboxes;
+global list_chunks;
+global str_boxdir;
+global str_curr_chunk_name;
+global list_bboxes;
+
+if int_curr_chunk > int_max_chunks
+    int_curr_video = int_curr_video + 1;
+    load_curr_video(handles)
+else
+    [~,str_curr_chunk_name,~] = fileparts(list_chunks{int_curr_chunk});
+    int_start_frame = str2num(str_curr_chunk_name(1:5));
+    int_end_frame = str2num(str_curr_chunk_name(7:11));
+
+    % TODO read .box file and get list of bboxes
+    list_bboxes = cell(0,1);
+    fid = fopen(fullfile(str_boxdir,list_chunks{int_curr_chunk}));
+    tline = fgetl(fid);
+    i=1;
+    while ischar(tline)
+        list_bboxes{end+1,1} = tline;
+        i=i+1;
+        tline = fgetl(fid);
+    end
+    fclose(fid);
+
+    int_max_bboxes = length(list_bboxes);
+
+    int_curr_bbox = 1;
+    load_curr_bbox(handles)
+end
+
+
 function load_curr_video(handles)
 % Initializes all the variables required for a new file, and displays the
 % first frame. Update the int_curr_video BEFORE calling this function.
@@ -111,27 +208,39 @@ global str_dir;        % contains 'self shot' or 'from web'
 global int_curr_video; % current video number in the str_dir folder.
 global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
 global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
-global file_prefix; % prefix string for the image/frame files 
+global file_prefix;    % prefix string for the image/frame files 
+global str_curr_video_name; % current video name
+global int_start_frame;
+global int_end_frame;
+global int_curr_chunk;
+global int_max_chunks;
+global list_chunks;
+global str_boxdir;
 
 % initial settings
-bool_is_paused = true; % default
-int_curr_frame = 1; % default
+% bool_is_paused = true; % shifted to load_curr_bbox
 
 % building imDir string
-seq_name = sprintf('%s%05d',file_prefix,int_curr_video); 
-str_imDir = fullfile('/home/is/Occlusion Video Data', str_dir, seq_name);
-
+str_curr_video_name = sprintf('%s%05d',file_prefix,int_curr_video); 
+str_imDir = fullfile('/home/is/Occlusion Video Data', str_dir, str_curr_video_name);
 imageList = dir(fullfile(str_imDir, '*.jpg'));
-list_imFiles = {imageList.name};    
+list_imFiles = {imageList.name};
 int_max_frames = length(imageList);
 clear imageList
+
 % TODO: should use axes(handles??) here before imshow??? -- IMPORTANT when
 % using multiple axes
-imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
+% imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame}))); % shifted to bbox
 
-% Update corresponding GUI text
-set(handles.text_curr_frame,'String',int_curr_frame);
-set(handles.text_curr_video,'String',seq_name);
+% read files and populate int_max_chunks
+str_boxdir = fullfile(str_imDir, 'bboxes');
+chunksList = dir(fullfile(str_boxdir, '*.box'));
+list_chunks = {chunksList.name}; 
+int_max_chunks = length(chunksList);
+clear chunksList
+
+int_curr_chunk = 1;
+load_curr_chunk(handles)
 
 
 % --- Executes when user attempts to close figure1.
@@ -275,4 +384,15 @@ if int_curr_video<int_max_videos
 else
     disp('Reached maximum video limit. Display this in status bar.');
 end
+uicontrol(handles.text_status); % divert focus
+
+
+% --- Executes on button press in button_next_bbox.
+function button_next_bbox_Callback(hObject, eventdata, handles)
+% hObject    handle to button_next_bbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_curr_bbox
+int_curr_bbox = int_curr_bbox + 1;
+load_curr_bbox(handles);
 uicontrol(handles.text_status); % divert focus

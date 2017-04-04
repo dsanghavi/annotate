@@ -1,10 +1,20 @@
-for vid_i = 3:1:3
+% creates bboxes for start frame of several overlapping chunks of the video
+
+for vid_i = 1:1:46
 
 %% paths
 
 vidname = sprintf('self%05d',vid_i);
 viddir = '/home/is/Occlusion Video Data/self shot';
 imdir = fullfile(viddir,vidname);
+
+boxdir = fullfile(imdir,'bboxes');
+mkdir(boxdir);
+boxdir_to_move_old = fullfile(imdir,'bboxes_old');
+mkdir(boxdir_to_move_old);
+if length(dir(fullfile(boxdir,'*'))) > 2
+    movefile(fullfile(boxdir,'*'), boxdir_to_move_old)
+end
 
 imlist = dir(fullfile(imdir, '*.jpg'));
 imfiles = {imlist.name};
@@ -230,8 +240,6 @@ if total_num_im-chunk_size < 1
 else
     end_fr = chunk_i+chunk_size-1;
 end
-boxdir = fullfile(imdir,'bboxes');
-mkdir(boxdir);
 export_fig(fullfile(boxdir,sprintf('%05d_%05d.box',chunk_i,end_fr)));
 
 
@@ -242,8 +250,6 @@ if total_num_im-chunk_size < 1
 else
     end_fr = chunk_i+chunk_size-1;
 end
-boxdir = fullfile(imdir,'bboxes');
-mkdir(boxdir);
 dlmwrite(fullfile(boxdir,sprintf('%05d_%05d.box',chunk_i,end_fr)),bboxes);
 
 
