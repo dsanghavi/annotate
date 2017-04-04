@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 03-Apr-2017 18:00:33
+% Last Modified by GUIDE v2.5 03-Apr-2017 20:17:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -69,12 +69,13 @@ int_max_videos = length(dir(fullfile(strcat('/home/is/Occlusion Video Data/',str
 int_curr_video = 1;
 
 % Initialize all other variables
-load_curr_video();
+load_curr_video(handles);
 
 % Choose default command line output for annotate
 handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
+
 
 % % BELOW PART Experimentally commented. No startup issues so far.
 % This sets up the initial plot - only do when we are invisible
@@ -99,7 +100,7 @@ varargout{1} = handles.output;
 disp('---------------------------------------------');
 
 
-function load_curr_video()
+function load_curr_video(handles)
 % Initializes all the variables required for a new file, and displays the
 % first frame. Update the int_curr_video BEFORE calling this function.
 
@@ -124,8 +125,14 @@ imageList = dir(fullfile(str_imDir, '*.jpg'));
 list_imFiles = {imageList.name};    
 int_max_frames = length(imageList);
 clear imageList
-% TODO: should use axes(handles??) here before imshow???
+% TODO: should use axes(handles??) here before imshow??? -- IMPORTANT when
+% using multiple axes
 imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
+
+% Update corresponding GUI text
+set(handles.text_curr_frame,'String',int_curr_frame);
+set(handles.text_curr_video,'String',seq_name);
+
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
@@ -149,14 +156,14 @@ function button_pause_Callback(hObject, eventdata, handles)
 global bool_is_paused;
 
 bool_is_paused = ~bool_is_paused;
-pause(0.01);
+pause(0.01); % So that the thread playing the file can stop
 
 % divert focus so that keyboard callback is only triggered on figure 1
 % and not the button as well.
 uicontrol(handles.text_status); 
-
-play(handles);
-
+if ~bool_is_paused
+    play(handles);
+end
 
 function play(handles) 
 % ONLY 1 thread should run this when bool_is_paused==false
@@ -170,7 +177,7 @@ axes(handles.axes1);
 while ~bool_is_paused
     cla;
     imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
-    set(handles.curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
+    set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
     drawnow;
     pause(0.01); % approx 33 fps in original dim
     int_curr_frame = int_curr_frame + 1;
@@ -213,7 +220,7 @@ switch eventdata.Key
             set(handles.text_status,'String','curr_frame underflow');
         end
         display_curr_frame(handles);
-        set(handles.curr_frame, 'String', num2str(int_curr_frame));
+        set(handles.text_curr_frame, 'String', num2str(int_curr_frame));
     case 'rightarrow'
         int_curr_frame = int_curr_frame + 10;
         bool_is_paused = true;
@@ -222,10 +229,12 @@ switch eventdata.Key
             set(handles.text_status,'String','max frames exceeded');
         end
         display_curr_frame(handles);
-        set(handles.curr_frame, 'String',num2str(int_curr_frame));
+        set(handles.text_curr_frame, 'String',num2str(int_curr_frame));
     case 'space'
         bool_is_paused = ~bool_is_paused;
-        play(handles);
+        if ~bool_is_paused
+            play(handles);
+        end
         % h = gco; % get the UIControl currently in focus.
         %try
         %    x = strcmp(get(h,'String'),'Pause');
@@ -253,16 +262,16 @@ function enter_pressed(handles)
 disp('Enter pressed');
 
 
-% --- Executes on button press in button_next_file.
-function button_next_file_Callback(hObject, eventdata, handles)
-% hObject    handle to button_next_file (see GCBO)
+% --- Executes on button press in button_next_video.
+function button_next_video_Callback(hObject, eventdata, handles)
+% hObject    handle to button_next_video (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global int_max_videos;
 global int_curr_video;
 if int_curr_video<int_max_videos
     int_curr_video = int_curr_video + 1;
-    load_curr_video(); % initializes the other variables corresponding to the new video, and displays the first frame.
+    load_curr_video(handles); % initializes the other variables corresponding to the new video, and displays the first frame.
 else
     disp('Reached maximum video limit. Display this in status bar.');
 end
