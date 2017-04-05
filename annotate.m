@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 03-Apr-2017 21:47:09
+% Last Modified by GUIDE v2.5 04-Apr-2017 20:10:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -216,9 +216,12 @@ global int_curr_chunk;
 global int_max_chunks;
 global list_chunks;
 global str_boxdir;
+global int_max_videos;
 
-% initial settings
-% bool_is_paused = true; % shifted to load_curr_bbox
+if int_curr_video>int_max_videos
+    disp('Woa woa');
+    int_curr_video = int_curr_video - 1; % TODO
+end
 
 % building imDir string
 str_curr_video_name = sprintf('%s%05d',file_prefix,int_curr_video); 
@@ -319,6 +322,12 @@ function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
 global int_curr_frame;
 global int_max_frames;
 global bool_is_paused;
+global bool_control_pressed;
+global bool_shift_pressed;
+global bool_alt_pressed;
+global int_curr_chunk;
+global int_curr_bbox;
+global int_curr_video;
 
 switch eventdata.Key
     case 'leftarrow'
@@ -331,14 +340,25 @@ switch eventdata.Key
         display_curr_frame(handles);
         set(handles.text_curr_frame, 'String', num2str(int_curr_frame));
     case 'rightarrow'
-        int_curr_frame = int_curr_frame + 10;
-        bool_is_paused = true;
-        if int_curr_frame > (int_max_frames-1)
-            int_curr_frame = int_max_frames-1;
-            set(handles.text_status,'String','max frames exceeded');
+        if bool_shift_pressed
+            int_curr_bbox = int_curr_bbox + 1;
+            load_curr_bbox(handles);
+        elseif bool_alt_pressed
+            int_curr_chunk = int_curr_chunk + 1;
+            load_curr_chunk(handles);
+        elseif bool_control_pressed
+            int_curr_video = int_curr_video + 1;
+            load_curr_video(handles);
+        else
+            int_curr_frame = int_curr_frame + 10;
+            bool_is_paused = true;
+            if int_curr_frame > (int_max_frames-1)
+                int_curr_frame = int_max_frames-1;
+                set(handles.text_status,'String','max frames exceeded');
+            end
+            display_curr_frame(handles);
+            set(handles.text_curr_frame, 'String',num2str(int_curr_frame));
         end
-        display_curr_frame(handles);
-        set(handles.text_curr_frame, 'String',num2str(int_curr_frame));
     case 'space'
         bool_is_paused = ~bool_is_paused;
         if ~bool_is_paused
@@ -358,6 +378,12 @@ switch eventdata.Key
         % as the button is pressed anyway!
     case 'return'
         enter_pressed(handles);
+    case 'control'
+        bool_control_pressed = true;
+    case 'shift'
+        bool_shift_pressed = true;
+    case 'alt'
+        bool_alt_pressed = true;
     otherwise
         disp(eventdata.Key); % remove after dev.
 end
@@ -366,6 +392,27 @@ end
 %backquote
 %alt
 %control
+
+% --- Executes on key release with focus on figure1 or any of its controls.
+function figure1_WindowKeyReleaseFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.FIGURE)
+%	Key: name of the key that was released, in lower case
+%	Character: character interpretation of the key(s) that was released
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) released
+% handles    structure with handles and user data (see GUIDATA)
+global bool_control_pressed;
+global bool_shift_pressed;
+global bool_alt_pressed;
+
+switch eventdata.Key
+    case 'control'
+        bool_control_pressed = false;
+    case 'shift'
+        bool_shift_pressed = false;
+    case 'alt'
+        bool_alt_pressed = false;
+end
 
 function enter_pressed(handles)
 disp('Enter pressed');
@@ -392,7 +439,20 @@ function button_next_bbox_Callback(hObject, eventdata, handles)
 % hObject    handle to button_next_bbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global int_curr_bbox
+global int_curr_bbox;
 int_curr_bbox = int_curr_bbox + 1;
 load_curr_bbox(handles);
 uicontrol(handles.text_status); % divert focus
+
+
+% --- Executes on button press in button_next_chunk.
+function button_next_chunk_Callback(hObject, eventdata, handles)
+% hObject    handle to button_next_chunk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_curr_chunk;
+int_curr_chunk = int_curr_chunk + 1;
+load_curr_chunk(handles);
+uicontrol(handles.text_status);
+
+
