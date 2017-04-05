@@ -1,5 +1,7 @@
 % creates bboxes for start frame of several overlapping chunks of the video
 
+clear all;
+
 for vid_i = 1:1:46
 
 %% paths
@@ -8,13 +10,16 @@ vidname = sprintf('self%05d',vid_i);
 viddir = '/home/is/Occlusion Video Data/self shot';
 imdir = fullfile(viddir,vidname);
 
+% MOVING EXISTING FILES IN ITS BBOXES FOLDER TP BBOXES_OLD
 boxdir = fullfile(imdir,'bboxes');
 mkdir(boxdir);
+% COMMENT THE FOLLOWING IF USING THE !!! CAREFUL USING THIS SECTION !!! SECTION
 boxdir_to_move_old = fullfile(imdir,'bboxes_old');
 mkdir(boxdir_to_move_old);
 if length(dir(fullfile(boxdir,'*'))) > 2
     movefile(fullfile(boxdir,'*'), boxdir_to_move_old)
 end
+% END OF COMMENT THE FOLLOWING IF USING THE !!! CAREFUL USING THIS SECTION !!! SECTION
 
 imlist = dir(fullfile(imdir, '*.jpg'));
 imfiles = {imlist.name};
@@ -27,11 +32,29 @@ chunk_step_size = 250; % must be less than chunk_size?
 if total_num_im-chunk_size < 1
     chunk_end_i = 1;
 else
-    chunk_end_i = total_num_im-chunk_size;
+    chunk_end_i = total_num_im-chunk_step_size;
 end
 
 %%
 for chunk_i = 1:chunk_step_size:chunk_end_i
+
+% !!! CAREFUL USING THIS SECTION !!!
+% KEEP THIS SECTION COMMENTED UNLESS YOU KNOW WHAT YOU ARE DOING
+% ONLY TO GENERATE MISSING CHUNKS AT THE END WHERE CHUNK SIZE IS SMALLER
+% !!! NOTE: COMMENT THE CODE RELATED TO boxdir_to_move_old ABOVE !!!
+% if total_num_im-chunk_size < 1
+%     end_fr = total_num_im;
+% else
+%     end_fr = chunk_i+chunk_size-1;
+%     if end_fr > total_num_im
+%         end_fr = total_num_im;
+%     end
+% end
+% if exist(fullfile(boxdir,sprintf('%05d_%05d.box',chunk_i,end_fr)),'file')==2
+% fprintf('Skipping %s\n', fullfile(boxdir,sprintf('%05d_%05d.box',chunk_i,end_fr)));
+%     continue
+% end
+% !!! END OF CAREFUL USING THIS SECTION !!!
     
 %% parameters
 
@@ -239,6 +262,9 @@ if total_num_im-chunk_size < 1
     end_fr = total_num_im;
 else
     end_fr = chunk_i+chunk_size-1;
+    if end_fr > total_num_im
+        end_fr = total_num_im;
+    end
 end
 export_fig(fullfile(boxdir,sprintf('%05d_%05d.box',chunk_i,end_fr)));
 
@@ -249,6 +275,9 @@ if total_num_im-chunk_size < 1
     end_fr = total_num_im;
 else
     end_fr = chunk_i+chunk_size-1;
+    if end_fr > total_num_im
+        end_fr = total_num_im;
+    end
 end
 dlmwrite(fullfile(boxdir,sprintf('%05d_%05d.box',chunk_i,end_fr)),bboxes);
 
