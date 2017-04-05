@@ -122,6 +122,7 @@ global int_max_bboxes;
 global arr_curr_box;
 global str_curr_chunk_name;
 global list_bboxes;
+global int_max_videos;
 
 if int_curr_bbox > int_max_bboxes
     int_curr_chunk = int_curr_chunk + 1;
@@ -140,8 +141,14 @@ else
                       'LineStyle','-');
 
     % Update corresponding GUI text
-    set(handles.text_curr_frame,'String',int_curr_frame);
-    set(handles.text_curr_video,'String',sprintf('%s, %s, %d', str_curr_video_name, str_curr_chunk_name, int_curr_bbox));
+    set(handles.text_curr_frame, 'String', int_curr_frame);
+    set(handles.text_curr_video, 'String', ...
+        sprintf('Video: %s    Chunk: %s    BBox: %d', ...
+                str_curr_video_name, str_curr_chunk_name, int_curr_bbox));
+    set(handles.text_status, 'String', ...
+        sprintf('Max Videos: %d    Max Chunks: %d    Max BBoxes: %d', ...
+                int_max_videos, int_max_chunks, int_max_bboxes));
+    set(handles.text_info, 'String', 'Ready to play.');
 end
 
 
@@ -219,7 +226,6 @@ global str_boxdir;
 global int_max_videos;
 
 if int_curr_video>int_max_videos
-    disp('Woa woa');
     int_curr_video = int_curr_video - 1; % TODO
 end
 
@@ -287,6 +293,7 @@ global list_imFiles;
 
 axes(handles.axes1);
 while ~bool_is_paused
+    set(handles.text_info, 'String', 'PLAYING');
     cla;
     imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
     set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
@@ -295,7 +302,7 @@ while ~bool_is_paused
     int_curr_frame = int_curr_frame + 1;
     if int_curr_frame > (int_max_frames-1)
         bool_is_paused = true;
-        set(handles.text_status,'String','max frames exceeded');
+        set(handles.text_info,'String','Exceeded max frames in chunk!');
     end
 end
 
@@ -335,7 +342,7 @@ switch eventdata.Key
         bool_is_paused = true;
         if int_curr_frame < 1
             int_curr_frame = 1;
-            set(handles.text_status,'String','curr_frame underflow');
+            set(handles.text_info,'String','curr_frame underflow');
         end
         display_curr_frame(handles);
         set(handles.text_curr_frame, 'String', num2str(int_curr_frame));
@@ -354,7 +361,7 @@ switch eventdata.Key
             bool_is_paused = true;
             if int_curr_frame > (int_max_frames-1)
                 int_curr_frame = int_max_frames-1;
-                set(handles.text_status,'String','max frames exceeded');
+                set(handles.text_info,'String','Exceeded max frames in chunk!');
             end
             display_curr_frame(handles);
             set(handles.text_curr_frame, 'String',num2str(int_curr_frame));
@@ -363,6 +370,8 @@ switch eventdata.Key
         bool_is_paused = ~bool_is_paused;
         if ~bool_is_paused
             play(handles);
+        else
+            set(handles.text_info, 'String', 'PAUSED');
         end
         % h = gco; % get the UIControl currently in focus.
         %try
@@ -429,7 +438,7 @@ if int_curr_video<int_max_videos
     int_curr_video = int_curr_video + 1;
     load_curr_video(handles); % initializes the other variables corresponding to the new video, and displays the first frame.
 else
-    disp('Reached maximum video limit. Display this in status bar.');
+    set(handles.text_info, 'String', 'Reached maximum video limit!');
 end
 uicontrol(handles.text_status); % divert focus
 
