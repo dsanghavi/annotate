@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 04-Apr-2017 20:10:04
+% Last Modified by GUIDE v2.5 06-Apr-2017 15:57:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,6 +61,9 @@ global int_max_frames; % maximum possible frame number for the current video
 global file_prefix;    % prefix string for the image/frame files 
 global str_dir;        % 'self shot' or 'from web'
 global int_max_videos;
+global bool_show_track_box;
+
+bool_show_track_box = false;
 
 file_prefix = 'self';
 str_dir = 'self shot';
@@ -124,6 +127,8 @@ global str_curr_chunk_name;
 global list_bboxes;
 global int_max_videos;
 
+axes(handles.axes1);
+
 if int_curr_bbox > int_max_bboxes
     int_curr_chunk = int_curr_chunk + 1;
     load_curr_chunk(handles)
@@ -135,10 +140,9 @@ else
     int_curr_frame = int_start_frame; % default
     int_max_frames = int_end_frame;
 
-    imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame}))); % shifted to bbox
-    rectangle('Position',arr_curr_box,...
-                      'EdgeColor', 'r',...
-                      'LineStyle','-');
+    display_curr_frame(handles)
+    %imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame}))); % shifted to bbox
+    display_tracking_box(handles) % ONLY FOR FIRST FRAME
 
     % Update corresponding GUI text
     set(handles.text_curr_frame, 'String', int_curr_frame);
@@ -294,11 +298,10 @@ global list_imFiles;
 axes(handles.axes1);
 while ~bool_is_paused
     set(handles.text_info, 'String', 'PLAYING');
-    cla;
-    imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame})));
+    display_curr_frame(handles)
     set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
-    drawnow;
-    pause(0.01); % approx 33 fps in original dim
+
+    pause(0.001*2); % approx 33 fps in original dim
     int_curr_frame = int_curr_frame + 1;
     if int_curr_frame > (int_max_frames-1)
         bool_is_paused = true;
@@ -311,11 +314,17 @@ function display_curr_frame(handles)
 global int_curr_frame;
 global str_imDir;
 global list_imFiles;
+global bool_show_track_box;
 
 axes(handles.axes1);
 cla;
 im = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
 imshow(im);
+if bool_show_track_box
+    display_tracking_box(handles)
+end
+display_tracklet(handles);
+drawnow;
 %drawnow;
 
 % --- Executes on key press with focus on figure1 or any of its controls.
@@ -465,3 +474,98 @@ load_curr_chunk(handles);
 uicontrol(handles.text_status);
 
 
+function display_tracklet(handles)
+axes(handles.axes2); % revert to one at the end
+
+global bool_is_paused; % Boolean, indicates if the playback is paused
+global int_curr_frame; % number of the frame currently in view
+global int_max_frames; % maximum possible frame number for the current video
+global str_dir;        % contains 'self shot' or 'from web'
+global int_curr_video; % current video number in the str_dir folder.
+global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
+global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
+global file_prefix;    % prefix string for the image/frame files 
+global str_curr_video_name; % current video name
+global int_start_frame;
+global int_end_frame;
+global int_curr_chunk;
+global int_max_chunks;
+global list_chunks;
+global str_boxdir;
+global int_max_videos;
+global int_curr_bbox;
+global str_curr_chunk_name;
+
+trackFile = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
+trackBoxes = dlmread(trackFile);
+
+buff = 50;
+
+frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
+
+trackframe = int_curr_frame-int_start_frame+1;
+
+y1 = trackBoxes(trackframe,2)-buff;
+y2 = trackBoxes(trackframe,2)+trackBoxes(trackframe,4)-1+buff;
+x1 = trackBoxes(trackframe,1)-buff;
+x2 = trackBoxes(trackframe,1)+trackBoxes(trackframe,3)-1+buff;
+
+if y1>0 && y2<=size(frame,1) && x1>0 && x2<=size(frame,2)
+    set(handles.text_tracklet_info, 'String', sprintf('Tracklet for BBox %d',int_curr_bbox));
+    trackedPatch = frame(y1:y2,x1:x2,:);
+    imshow(trackedPatch);
+else
+    set(handles.text_tracklet_info, 'String', 'Tracklet out of bounds!');
+end
+
+axes(handles.axes1);
+
+function display_tracking_box(handles)
+global bool_is_paused; % Boolean, indicates if the playback is paused
+global int_curr_frame; % number of the frame currently in view
+global int_max_frames; % maximum possible frame number for the current video
+global str_dir;        % contains 'self shot' or 'from web'
+global int_curr_video; % current video number in the str_dir folder.
+global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
+global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
+global file_prefix;    % prefix string for the image/frame files 
+global str_curr_video_name; % current video name
+global int_start_frame;
+global int_end_frame;
+global int_curr_chunk;
+global int_max_chunks;
+global list_chunks;
+global str_boxdir;
+global int_max_videos;
+global int_curr_bbox;
+global str_curr_chunk_name;
+
+trackFile = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
+trackBoxes = dlmread(trackFile);
+
+trackframe = int_curr_frame-int_start_frame+1;
+
+redbox = trackBoxes(trackframe,:);
+yelbox = [redbox(1)-1,redbox(2)-1,redbox(3)+2,redbox(4)+2];
+
+rectangle('Position',yelbox,...
+          'EdgeColor', 'y',...
+          'LineStyle','-',...
+          'LineWidth',2);
+rectangle('Position',redbox,...
+          'EdgeColor', 'r',...
+          'LineStyle','-',...
+          'LineWidth',1);
+
+
+% --- Executes on button press in toggle_track_box.
+function toggle_track_box_Callback(hObject, eventdata, handles)
+% hObject    handle to toggle_track_box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global bool_show_track_box;
+
+bool_show_track_box = ~bool_show_track_box;
+
+display_curr_frame(handles);
+uicontrol(handles.text_status);

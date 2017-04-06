@@ -1,7 +1,7 @@
 % multi box show track boxes
 
-vid_i = 46;
-chunk_name = '00401_00900';
+vid_i = 1;
+chunk_name = '00001_00500';
 box_i = 1;
 
 seq_name = sprintf('self%05d',vid_i);
@@ -24,7 +24,7 @@ clear imageList;
 
 %% for all boxes together
 trackfilelist = dir(fullfile(imDir, 'bboxes', sprintf('%s*.track',chunk_name)));
-trackfiles = {trackfilelist.name};
+trackfiles = {trackfilelist.name}; 
 clear trackfilelist;
 
 trackboxes = zeros(str2num(chunk_name(7:11))-str2num(chunk_name(1:5))+1,4,size(trackfiles,2));
