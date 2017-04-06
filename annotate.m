@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 06-Apr-2017 15:57:20
+% Last Modified by GUIDE v2.5 06-Apr-2017 16:23:37
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -133,7 +133,7 @@ if int_curr_bbox > int_max_bboxes
     int_curr_chunk = int_curr_chunk + 1;
     load_curr_chunk(handles)
 else
-    bool_is_paused = true; % shifted to load_curr_bbox
+    paused(handles);
 
     arr_curr_box = str2num(list_bboxes{int_curr_bbox});
 
@@ -285,7 +285,15 @@ pause(0.01); % So that the thread playing the file can stop
 uicontrol(handles.text_status); 
 if ~bool_is_paused
     play(handles);
+else
+    paused(handles);
 end
+
+function paused(handles)
+global bool_is_paused;
+bool_is_paused = true;
+set(handles.text_info, 'String', 'PAUSED');
+set(handles.button_pause,'String','Play');
 
 function play(handles) 
 % ONLY 1 thread should run this when bool_is_paused==false
@@ -298,6 +306,7 @@ global list_imFiles;
 axes(handles.axes1);
 while ~bool_is_paused
     set(handles.text_info, 'String', 'PLAYING');
+    set(handles.button_pause,'String','Pause');
     display_curr_frame(handles)
     set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
 
@@ -315,11 +324,12 @@ global int_curr_frame;
 global str_imDir;
 global list_imFiles;
 global bool_show_track_box;
+global img_curr_frame;
 
 axes(handles.axes1);
 cla;
-im = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
-imshow(im);
+img_curr_frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
+imshow(img_curr_frame);
 if bool_show_track_box
     display_tracking_box(handles)
 end
@@ -344,6 +354,7 @@ global bool_alt_pressed;
 global int_curr_chunk;
 global int_curr_bbox;
 global int_curr_video;
+global bool_show_track_box;
 
 switch eventdata.Key
     case 'leftarrow'
@@ -380,7 +391,7 @@ switch eventdata.Key
         if ~bool_is_paused
             play(handles);
         else
-            set(handles.text_info, 'String', 'PAUSED');
+            paused(handles);
         end
         % h = gco; % get the UIControl currently in focus.
         %try
@@ -398,10 +409,15 @@ switch eventdata.Key
         enter_pressed(handles);
     case 'control'
         bool_control_pressed = true;
+        disp('control pressed');
     case 'shift'
         bool_shift_pressed = true;
     case 'alt'
         bool_alt_pressed = true;
+        disp('alt pressed');
+    case 's'
+        set(handles.toggle_track_box,'Value',~bool_show_track_box);
+        toggle_track_box_Callback(hObject, eventdata, handles);
     otherwise
         disp(eventdata.Key); % remove after dev.
 end
@@ -495,13 +511,14 @@ global str_boxdir;
 global int_max_videos;
 global int_curr_bbox;
 global str_curr_chunk_name;
+global img_curr_frame;
 
 trackFile = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
 trackBoxes = dlmread(trackFile);
 
 buff = 50;
 
-frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
+% frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
 
 trackframe = int_curr_frame-int_start_frame+1;
 
@@ -510,9 +527,9 @@ y2 = trackBoxes(trackframe,2)+trackBoxes(trackframe,4)-1+buff;
 x1 = trackBoxes(trackframe,1)-buff;
 x2 = trackBoxes(trackframe,1)+trackBoxes(trackframe,3)-1+buff;
 
-if y1>0 && y2<=size(frame,1) && x1>0 && x2<=size(frame,2)
+if y1>0 && y2<=size(img_curr_frame,1) && x1>0 && x2<=size(img_curr_frame,2)
     set(handles.text_tracklet_info, 'String', sprintf('Tracklet for BBox %d',int_curr_bbox));
-    trackedPatch = frame(y1:y2,x1:x2,:);
+    trackedPatch = img_curr_frame(y1:y2,x1:x2,:);
     imshow(trackedPatch);
 else
     set(handles.text_tracklet_info, 'String', 'Tracklet out of bounds!');
@@ -567,5 +584,5 @@ global bool_show_track_box;
 
 bool_show_track_box = ~bool_show_track_box;
 
-display_curr_frame(handles);
+display_curr_frame(handles)
 uicontrol(handles.text_status);
