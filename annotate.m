@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 06-Apr-2017 16:23:37
+% Last Modified by GUIDE v2.5 06-Apr-2017 18:34:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -133,7 +133,8 @@ if int_curr_bbox > int_max_bboxes
     int_curr_chunk = int_curr_chunk + 1;
     load_curr_chunk(handles)
 else
-    paused(handles);
+%     paused(handles);
+    bool_is_paused = true;
 
     arr_curr_box = str2num(list_bboxes{int_curr_bbox});
 
@@ -229,8 +230,10 @@ global list_chunks;
 global str_boxdir;
 global int_max_videos;
 
-if int_curr_video>int_max_videos
-    int_curr_video = int_curr_video - 1; % TODO
+if int_curr_video < 1
+    int_curr_video = 1;
+elseif int_curr_video > int_max_videos
+    int_curr_video = int_max_videos;
 end
 
 % building imDir string
@@ -312,9 +315,9 @@ while ~bool_is_paused
 
     pause(0.001*2); % approx 33 fps in original dim
     int_curr_frame = int_curr_frame + 1;
-    if int_curr_frame > (int_max_frames-1)
+    if int_curr_frame > int_max_frames
         bool_is_paused = true;
-        set(handles.text_info,'String','Exceeded max frames in chunk!');
+        set(handles.text_info,'String','Reached last frame in chunk!');
     end
 end
 
@@ -358,30 +361,35 @@ global bool_show_track_box;
 
 switch eventdata.Key
     case 'leftarrow'
-        int_curr_frame = int_curr_frame - 10;
-        bool_is_paused = true;
-        if int_curr_frame < 1
-            int_curr_frame = 1;
-            set(handles.text_info,'String','curr_frame underflow');
+        if bool_shift_pressed
+            button_prev_bbox_Callback(hObject, eventdata, handles)
+        elseif bool_alt_pressed
+            button_prev_chunk_Callback(hObject, eventdata, handles)
+        elseif bool_control_pressed
+            button_prev_video_Callback(hObject, eventdata, handles);
+        else
+            int_curr_frame = int_curr_frame - 10;
+            bool_is_paused = true;
+            if int_curr_frame < 1
+                int_curr_frame = 1;
+                set(handles.text_info, 'String', 'Reached first frame!');
+            end
+            display_curr_frame(handles);
+            set(handles.text_curr_frame, 'String', num2str(int_curr_frame));
         end
-        display_curr_frame(handles);
-        set(handles.text_curr_frame, 'String', num2str(int_curr_frame));
     case 'rightarrow'
         if bool_shift_pressed
-            int_curr_bbox = int_curr_bbox + 1;
-            load_curr_bbox(handles);
+            button_next_bbox_Callback(hObject, eventdata, handles)
         elseif bool_alt_pressed
-            int_curr_chunk = int_curr_chunk + 1;
-            load_curr_chunk(handles);
+            button_next_chunk_Callback(hObject, eventdata, handles)
         elseif bool_control_pressed
-            int_curr_video = int_curr_video + 1;
-            load_curr_video(handles);
+            button_next_video_Callback(hObject, eventdata, handles);
         else
             int_curr_frame = int_curr_frame + 10;
             bool_is_paused = true;
-            if int_curr_frame > (int_max_frames-1)
-                int_curr_frame = int_max_frames-1;
-                set(handles.text_info,'String','Exceeded max frames in chunk!');
+            if int_curr_frame > int_max_frames
+                int_curr_frame = int_max_frames;
+                set(handles.text_info,'String','Reached last frame in chunk!');
             end
             display_curr_frame(handles);
             set(handles.text_curr_frame, 'String',num2str(int_curr_frame));
@@ -409,13 +417,11 @@ switch eventdata.Key
         enter_pressed(handles);
     case 'control'
         bool_control_pressed = true;
-        disp('control pressed');
     case 'shift'
         bool_shift_pressed = true;
     case 'alt'
         bool_alt_pressed = true;
-        disp('alt pressed');
-    case 's'
+    case 't'
         set(handles.toggle_track_box,'Value',~bool_show_track_box);
         toggle_track_box_Callback(hObject, eventdata, handles);
     otherwise
@@ -459,11 +465,27 @@ function button_next_video_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global int_max_videos;
 global int_curr_video;
-if int_curr_video<int_max_videos
+if int_curr_video < int_max_videos
     int_curr_video = int_curr_video + 1;
     load_curr_video(handles); % initializes the other variables corresponding to the new video, and displays the first frame.
 else
-    set(handles.text_info, 'String', 'Reached maximum video limit!');
+    set(handles.text_info, 'String', 'Reached last video!');
+end
+uicontrol(handles.text_status); % divert focus
+
+
+% --- Executes on button press in button_prev_video.
+function button_prev_video_Callback(hObject, eventdata, handles)
+% hObject    handle to button_prev_video (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_max_videos;
+global int_curr_video;
+if int_curr_video > 1
+    int_curr_video = int_curr_video - 1;
+    load_curr_video(handles); % initializes the other variables corresponding to the new video, and displays the first frame.
+else
+    set(handles.text_info, 'String', 'Reached first video!');
 end
 uicontrol(handles.text_status); % divert focus
 
@@ -474,10 +496,29 @@ function button_next_bbox_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global int_curr_bbox;
-int_curr_bbox = int_curr_bbox + 1;
-load_curr_bbox(handles);
+global int_max_bboxes;
+if int_curr_bbox < int_max_bboxes
+    int_curr_bbox = int_curr_bbox + 1;
+    load_curr_bbox(handles);
+else
+    set(handles.text_info, 'String', 'Reached last bbox!');
+end
 uicontrol(handles.text_status); % divert focus
 
+
+% --- Executes on button press in button_prev_bbox.
+function button_prev_bbox_Callback(hObject, eventdata, handles)
+% hObject    handle to button_prev_bbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_curr_bbox;
+if int_curr_bbox > 1
+    int_curr_bbox = int_curr_bbox - 1;
+    load_curr_bbox(handles);
+else
+    set(handles.text_info, 'String', 'Reached first bbox!');
+end
+uicontrol(handles.text_status); % divert focus
 
 % --- Executes on button press in button_next_chunk.
 function button_next_chunk_Callback(hObject, eventdata, handles)
@@ -485,8 +526,28 @@ function button_next_chunk_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global int_curr_chunk;
-int_curr_chunk = int_curr_chunk + 1;
-load_curr_chunk(handles);
+global int_max_chunks;
+if int_curr_chunk < int_max_chunks
+    int_curr_chunk = int_curr_chunk + 1;
+    load_curr_chunk(handles);
+else
+    set(handles.text_info, 'String', 'Reached last chunk!');
+end
+uicontrol(handles.text_status);
+
+
+% --- Executes on button press in button_prev_chunk.
+function button_prev_chunk_Callback(hObject, eventdata, handles)
+% hObject    handle to button_prev_chunk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_curr_chunk;
+if int_curr_chunk > 1
+    int_curr_chunk = int_curr_chunk - 1;
+    load_curr_chunk(handles);
+else
+    set(handles.text_info, 'String', 'Reached first chunk!');
+end
 uicontrol(handles.text_status);
 
 
