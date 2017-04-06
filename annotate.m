@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 06-Apr-2017 18:34:17
+% Last Modified by GUIDE v2.5 06-Apr-2017 19:41:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,8 +62,10 @@ global file_prefix;    % prefix string for the image/frame files
 global str_dir;        % 'self shot' or 'from web'
 global int_max_videos;
 global bool_show_track_box;
+global bool_mode_annotate;
 
 bool_show_track_box = false;
+bool_mode_annotate = false;
 
 file_prefix = 'self';
 str_dir = 'self shot';
@@ -358,6 +360,7 @@ global int_curr_chunk;
 global int_curr_bbox;
 global int_curr_video;
 global bool_show_track_box;
+global bool_mode_annotate;
 
 switch eventdata.Key
     case 'leftarrow'
@@ -401,18 +404,6 @@ switch eventdata.Key
         else
             paused(handles);
         end
-        % h = gco; % get the UIControl currently in focus.
-        %try
-        %    x = strcmp(get(h,'String'),'Pause');
-        %catch
-        %    x = false;
-        %end
-        %if ~x
-        %    bool_is_paused = ~bool_is_paused; 
-        %    play(handles);
-        %end
-        % Above part not needed anymore as we are diverting focus as soon
-        % as the button is pressed anyway!
     case 'return'
         enter_pressed(handles);
     case 'control'
@@ -424,6 +415,10 @@ switch eventdata.Key
     case 't'
         set(handles.toggle_track_box,'Value',~bool_show_track_box);
         toggle_track_box_Callback(hObject, eventdata, handles);
+    case 'a'
+        disp('Toggling Mode.');
+        set(handles.toggle_mode,'Value',~bool_mode_annotate);
+        toggle_mode_Callback(hObject, eventdata, handles);
     otherwise
         disp(eventdata.Key); % remove after dev.
 end
@@ -455,7 +450,11 @@ switch eventdata.Key
 end
 
 function enter_pressed(handles)
-disp('Enter pressed');
+global bool_mode_annotate;
+if bool_mode_annotate
+    disp('Writing to file');
+    % TODO
+end
 
 
 % --- Executes on button press in button_next_video.
@@ -647,3 +646,20 @@ bool_show_track_box = ~bool_show_track_box;
 
 display_curr_frame(handles)
 uicontrol(handles.text_status);
+
+
+% --- Executes on button press in toggle_mode.
+function toggle_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to toggle_mode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of toggle_mode
+global bool_mode_annotate;
+
+bool_mode_annotate = get(handles.toggle_mode,'Value');
+if bool_mode_annotate
+    set(handles.toggle_mode,'String','Mode: ANNOTATE')
+else
+    set(handles.toggle_mode,'String','Mode: VIEW')
+end
