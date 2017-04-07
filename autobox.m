@@ -12,10 +12,14 @@ imdir = fullfile(viddir,vidname);
 
 % MOVING EXISTING FILES IN ITS BBOXES FOLDER TP BBOXES_OLD
 boxdir = fullfile(imdir,'bboxes');
-mkdir(boxdir);
+if exist(boxdir,'dir')~=7
+    mkdir(boxdir);
+end
 % COMMENT THE FOLLOWING IF USING THE !!! CAREFUL USING THIS SECTION !!! SECTION
 boxdir_to_move_old = fullfile(imdir,'bboxes_old');
-mkdir(boxdir_to_move_old);
+if exist(boxdir_to_move_old,'dir')~=7
+    mkdir(boxdir_to_move_old);
+end
 if length(dir(fullfile(boxdir,'*'))) > 2
     movefile(fullfile(boxdir,'*'), boxdir_to_move_old)
 end
