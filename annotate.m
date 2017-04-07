@@ -527,7 +527,7 @@ uicontrol(handles.text_status); % divert focus
 
 
 % --- Executes on button press in button_next_bbox.
-function button_next_bbox_Callback(~, ~, handles)
+function button_next_bbox_Callback(hObject, eventdata, handles)
 % hObject    handle to button_next_bbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -539,14 +539,15 @@ if int_curr_bbox < int_max_bboxes
     int_curr_bbox = int_curr_bbox + 1;
     load_curr_bbox(handles);
 else
-    set(handles.text_info, 'String', 'Reached last bbox!');
+    % set(handles.text_info, 'String', 'Reached last bbox!');
+    button_next_chunk_Callback(hObject, eventdata, handles);
 end
 uicontrol(handles.text_status); % divert focus
 
 
 
 % --- Executes on button press in button_prev_bbox.
-function button_prev_bbox_Callback(~, ~, handles)
+function button_prev_bbox_Callback(hObject, eventdata, handles)
 % hObject    handle to button_prev_bbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -557,14 +558,15 @@ if int_curr_bbox > 1
     int_curr_bbox = int_curr_bbox - 1;
     load_curr_bbox(handles);
 else
-    set(handles.text_info, 'String', 'Reached first bbox!');
+    % set(handles.text_info, 'String', 'Reached first bbox!');
+    button_prev_chunk_Callback(hObject, eventdata, handles);
 end
 uicontrol(handles.text_status); % divert focus
 
 
 
 % --- Executes on button press in button_next_chunk.
-function button_next_chunk_Callback(~, ~, handles)
+function button_next_chunk_Callback(hObject, eventdata, handles)
 % hObject    handle to button_next_chunk (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -576,14 +578,15 @@ if int_curr_chunk < int_max_chunks
     int_curr_chunk = int_curr_chunk + 1;
     load_curr_chunk(handles);
 else
-    set(handles.text_info, 'String', 'Reached last chunk!');
+    % set(handles.text_info, 'String', 'Reached last chunk!');
+    button_next_video_Callback(hObject, eventdata, handles);
 end
 uicontrol(handles.text_status);
 
 
 
 % --- Executes on button press in button_prev_chunk.
-function button_prev_chunk_Callback(~, ~, handles)
+function button_prev_chunk_Callback(hObject, eventdata, handles)
 % hObject    handle to button_prev_chunk (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -594,7 +597,8 @@ if int_curr_chunk > 1
     int_curr_chunk = int_curr_chunk - 1;
     load_curr_chunk(handles);
 else
-    set(handles.text_info, 'String', 'Reached first chunk!');
+    % set(handles.text_info, 'String', 'Reached first chunk!');
+    button_prev_video_Callback(hObject, eventdata, handles);
 end
 uicontrol(handles.text_status);
 
