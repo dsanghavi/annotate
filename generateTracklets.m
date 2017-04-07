@@ -10,11 +10,18 @@ global int_track_box_buffer;
 global trackletsavedir;
 global track_name;
 global outputVideo;
+global bool_generate_video;
+global bool_generate_images;
+global bool_display_images;
 
 seqStart = 1;
 seqEnd = 46;
 
-int_track_box_buffer = 50;
+int_track_box_buffer    = 50;
+
+bool_generate_video     = true;
+bool_generate_images    = true;
+bool_display_images     = false;
 
 for sNum = seqStart:seqEnd
     seq_name = sprintf('self%05d',sNum);
@@ -45,26 +52,37 @@ for sNum = seqStart:seqEnd
         int_start_frame = str2num(track_name(1:5));
         int_end_frame = str2num(track_name(7:11));
         
-        videofile = fullfile(trackletsavedir,sprintf('%s_trklt.avi',track_name));
-        outputVideo = VideoWriter(videofile);
-        outputVideo.FrameRate = 30;
-        open(outputVideo)
+        if bool_generate_video
+            videofile = fullfile(trackletsavedir,sprintf('%s_trklt.avi',track_name));
+            outputVideo = VideoWriter(videofile);
+            outputVideo.FrameRate = 30;
+            open(outputVideo)
+        end
         
         trackfileIteration();
         
-        close(outputVideo);
+        if bool_generate_video
+            close(outputVideo);
+        end
         
         % some clean-up of empty directories/files
         if exist(videofile,'file')==2
             % if videofile exists
-            f = dir(videofile);
-            if f.bytes == 0
-                % if videofile is empty
-                rmdir(trackletsavedir,'s');
+            if bool_generate_video
+                f = dir(videofile);
+                if f.bytes == 0
+                    % if videofile is empty
+                    rmdir(trackletsavedir,'s');
+                end
             end
         elseif exist(trackletsavedir,'dir')==7
             % if videofile doesn't exist but trackletsavedir exists
-            rmdir(trackletsavedir,'s');
+            if bool_generate_video || bool_generate_images
+                if length(dir(fullfile(trackletsavedir,'*'))) == 2
+                    % if trackletsavedir is empty
+                    rmdir(trackletsavedir,'s');
+                end
+            end
         end
     end
 end
@@ -78,6 +96,9 @@ function trackfileIteration()
     global trackletsavedir;
     global track_name;
     global outputVideo;
+    global bool_generate_video;
+    global bool_generate_images;
+    global bool_display_images;
     
     for int_curr_frame = int_start_frame:1:int_end_frame
         img_curr_frame = imread(imFiles{int_curr_frame});
@@ -91,16 +112,22 @@ function trackfileIteration()
         if y1>0 && y2<=size(img_curr_frame,1) && x1>0 && x2<=size(img_curr_frame,2)
             tracklet = img_curr_frame(y1:y2,x1:x2,:);
             
-            % DISPLAY TRACKLET
-            % imshow(tracklet);
-            % pause(0.01);
+            if bool_display_images
+                % DISPLAY TRACKLET
+                imshow(tracklet);
+                pause(0.005);
+            end
             
-            % WRITE TRACKLET TO IMAGE FILE
-            tracklet_fname = sprintf('%s_trklt%d.png',track_name,int_curr_frame);
-            imwrite(tracklet,fullfile(trackletsavedir,tracklet_fname),'PNG');
+            if bool_generate_images
+                % WRITE TRACKLET TO IMAGE FILE
+                tracklet_fname = sprintf('%s_trklt%05d.png',track_name,int_curr_frame);
+                imwrite(tracklet,fullfile(trackletsavedir,tracklet_fname),'PNG');
+            end
             
-            % WRITE TO VIDEO AS WELL
-            writeVideo(outputVideo,tracklet);
+            if bool_generate_video
+                % WRITE TO VIDEO AS WELL
+                writeVideo(outputVideo,tracklet);
+            end
         else
             % TRACKLET HAS GONE OUT OF BOUNDS
             % STOP GENERATING TRACKLETS
