@@ -1,7 +1,5 @@
 % xinput set-prop 12 306 1 0
 
-
-
 function varargout = annotate(varargin)
 % ANNOTATE MATLAB code for annotate.fig
 %      ANNOTATE, by itself, creates a new ANNOTATE or raises the existing
@@ -26,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 06-Apr-2017 19:41:24
+% Last Modified by GUIDE v2.5 06-Apr-2017 21:13:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,9 +61,16 @@ global str_dir;        % 'self shot' or 'from web'
 global int_max_videos; % maximum number of videos folder given by str_dir
 global bool_show_track_box; % Boolean, whether to display tracked boxes
 global bool_mode_annotate;  % Boolean, 'ANNOTATE' mode or 'VIEW' mode
+global bool_control_pressed;% Boolean, indicates if CTRL is currently pressed
+global bool_shift_pressed;  % Boolean, indicates if SHIFT is currently pressed
+global bool_alt_pressed;    % Boolean, indicates if ALT is currently pressed
 
 bool_show_track_box = false;
 bool_mode_annotate = false;
+
+bool_control_pressed = false;
+bool_shift_pressed = false;
+bool_alt_pressed = false;
 
 file_prefix = 'self';
 str_dir = 'self shot';
@@ -291,6 +296,8 @@ global bool_is_paused; % Boolean, indicates if the playback is paused
 bool_is_paused = true;
 set(handles.text_info, 'String', 'PAUSED');
 set(handles.button_pause,'String','Play');
+pause(0.05)
+display_curr_frame(handles)
 
 
 
@@ -412,9 +419,15 @@ switch eventdata.Key
         set(handles.toggle_track_box,'Value',~bool_show_track_box);
         toggle_track_box_Callback(hObject, eventdata, handles);
     case 'a'
-        disp('Toggling Mode.');
-        set(handles.toggle_mode,'Value',~bool_mode_annotate);
-        toggle_mode_Callback(hObject, eventdata, handles);
+        if bool_control_pressed
+            set(handles.toggle_mode,'Value',~bool_mode_annotate);
+            toggle_mode_Callback(hObject, eventdata, handles);
+        end
+    case 'r'
+        if bool_control_pressed
+            set(handles.checkbox_rewrite_file,'Value',~get(handles.checkbox_rewrite_file, 'Value'));
+            checkbox_rewrite_file_Callback(hObject, eventdata, handles);
+        end
     otherwise
         disp(eventdata.Key); % remove after dev.
 end
@@ -452,9 +465,26 @@ end
 
 function enter_pressed(handles)
 global bool_mode_annotate;  % Boolean, 'ANNOTATE' mode or 'VIEW' mode
+global str_boxdir;          % path of directory where .box files are stored
+global int_curr_bbox;       % current bounding box
+global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
+global int_curr_frame;      % number of the frame currently in view
+
 if bool_mode_annotate
-    disp('Writing to file');
-    % TODO
+    % Ensure no files are overwritten by mistake.
+    str_fullfile = fullfile(str_boxdir, sprintf('%s_%03d.focc',str_curr_chunk_name,int_curr_bbox));
+    if exist(str_fullfile,'file')==2 && ~get(handles.checkbox_rewrite_file,'Value')
+        % set(handles.text_info,'String','FILE EXISTS! Please check the Rewrite File checkbox to proceed.');
+        h = msgbox({'File Exists!' 'Please enable Rewrite File'},'Warning');
+        
+    else
+        h = myquestdlg(sprintf('Selecting frame %d as f_occ.',int_curr_frame));
+        if strcmp(h,'Yes')
+            fileID = fopen(str_fullfile,'w');
+            fprintf(fileID,'%d', int_curr_frame); % Integers.
+            fclose(fileID);
+        end
+    end
 end
 
 
@@ -680,8 +710,15 @@ global bool_mode_annotate;
 bool_mode_annotate = get(handles.toggle_mode,'Value');
 if bool_mode_annotate
     set(handles.toggle_mode,'String','Mode: ANNOTATE')
+    set(handles.checkbox_rewrite_file, 'Visible','on')
 else
     set(handles.toggle_mode,'String','Mode: VIEW')
+    set(handles.checkbox_rewrite_file, 'Visible','off')
 end
+uicontrol(handles.text_status);
 
 
+% --- Executes on button press in checkbox_rewrite_file.
+function checkbox_rewrite_file_Callback(hObject, eventdata, handles)
+% Simply remove from focus
+uicontrol(handles.text_status);
