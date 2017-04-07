@@ -1,5 +1,7 @@
 % xinput set-prop 12 306 1 0
 
+
+
 function varargout = annotate(varargin)
 % ANNOTATE MATLAB code for annotate.fig
 %      ANNOTATE, by itself, creates a new ANNOTATE or raises the existing
@@ -45,23 +47,21 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+
+
 % --- Executes just before annotate is made visible.
-function annotate_OpeningFcn(hObject, eventdata, handles, varargin)
+function annotate_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to annotate (see VARARGIN)
-global bool_is_paused; % Boolean, indicates if the playback is paused
-global int_curr_frame; % number of the frame currently in view
-global str_imDir;      % parent dir of where the image/frame files are
-global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg)
-global int_curr_video; % number of the video currently
-global int_max_frames; % maximum possible frame number for the current video
+
+global int_curr_video; % current video number in the str_dir folder.
 global file_prefix;    % prefix string for the image/frame files 
 global str_dir;        % 'self shot' or 'from web'
-global int_max_videos;
-global bool_show_track_box;
+global int_max_videos; % maximum number of videos folder given by str_dir
+global bool_show_track_box; % Boolean, whether to display tracked boxes
 
 bool_show_track_box = false;
 
@@ -80,6 +80,7 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 
+
 % % BELOW PART Experimentally commented. No startup issues so far.
 % This sets up the initial plot - only do when we are invisible
 % so window can get raised using annotate.
@@ -91,8 +92,9 @@ guidata(hObject, handles);
 % uiwait(handles.figure1);
 
 
+
 % --- Outputs from this function are returned to the command line.
-function varargout = annotate_OutputFcn(hObject, eventdata, handles)
+function varargout = annotate_OutputFcn(~, ~, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -103,29 +105,25 @@ varargout{1} = handles.output;
 disp('---------------------------------------------');
 
 
+
 function load_curr_bbox(handles)
 % Initializes all the variables required for a new file, and displays the
 % first frame. Update the int_curr_bbox BEFORE calling this function.
 
-global bool_is_paused; % Boolean, indicates if the playback is paused
-global int_curr_frame; % number of the frame currently in view
-global int_max_frames; % maximum possible frame number for the current video
-global str_dir;        % contains 'self shot' or 'from web'
-global int_curr_video; % current video number in the str_dir folder.
-global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
-global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
-global file_prefix;    % prefix string for the image/frame files 
+global bool_is_paused;  % Boolean, indicates if the playback is paused
+global int_curr_frame;  % number of the frame currently in view
+global int_max_frames;  % maximum possible frame number for the current video
 global str_curr_video_name; % current video name
-global int_start_frame;
-global int_end_frame;
-global int_curr_chunk;
-global int_max_chunks;
-global int_curr_bbox;
-global int_max_bboxes;
-global arr_curr_box;
-global str_curr_chunk_name;
-global list_bboxes;
-global int_max_videos;
+global int_start_frame; % first frame in the current chunk
+global int_end_frame;   % last frame in the current chunk
+global int_curr_chunk;  % current chunk number
+global int_max_chunks;  % maximum number of chunks in current video
+global int_curr_bbox;   % current bounding box
+global int_max_bboxes;  % maximum number of bounding boxes in current chunk
+global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
+global int_max_videos;  % maximum number of videos folder given by str_dir
+global arr_tracked_boxes;   % array with tracked box coordinates for each frame in chunk
+global str_boxdir;      % path of directory where .box files are stored
 
 axes(handles.axes1);
 
@@ -133,13 +131,13 @@ if int_curr_bbox > int_max_bboxes
     int_curr_chunk = int_curr_chunk + 1;
     load_curr_chunk(handles)
 else
-%     paused(handles);
     bool_is_paused = true;
-
-    arr_curr_box = str2num(list_bboxes{int_curr_bbox});
 
     int_curr_frame = int_start_frame; % default
     int_max_frames = int_end_frame;
+
+    file_track = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
+    arr_tracked_boxes = dlmread(file_track);
 
     display_curr_frame(handles)
     %imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame}))); % shifted to bbox
@@ -148,10 +146,10 @@ else
     % Update corresponding GUI text
     set(handles.text_curr_frame, 'String', int_curr_frame);
     set(handles.text_curr_video, 'String', ...
-        sprintf('Video: %s    Chunk: %s    BBox: %d', ...
+        sprintf('Video: %s        Chunk: %s        BBox: %d', ...
                 str_curr_video_name, str_curr_chunk_name, int_curr_bbox));
     set(handles.text_status, 'String', ...
-        sprintf('Max Videos: %d    Max Chunks: %d    Max BBoxes: %d', ...
+        sprintf('Max Videos: %d        Max Chunks: %d        Max BBoxes: %d', ...
                 int_max_videos, int_max_chunks, int_max_bboxes));
     set(handles.text_info, 'String', 'Ready to play.');
 end
@@ -162,25 +160,16 @@ function load_curr_chunk(handles)
 % Initializes all the variables required for a new file, and displays the
 % first frame. Update the int_curr_chunk BEFORE calling this function.
 
-global bool_is_paused; % Boolean, indicates if the playback is paused
-global int_curr_frame; % number of the frame currently in view
-global int_max_frames; % maximum possible frame number for the current video
-global str_dir;        % contains 'self shot' or 'from web'
-global int_curr_video; % current video number in the str_dir folder.
-global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
-global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
-global file_prefix;    % prefix string for the image/frame files 
-global str_curr_video_name; % current video name
-global int_start_frame;
-global int_end_frame;
-global int_curr_chunk;
-global int_max_chunks;
-global int_curr_bbox;
-global int_max_bboxes;
-global list_chunks;
-global str_boxdir;
-global str_curr_chunk_name;
-global list_bboxes;
+global int_curr_video;  % current video number in the str_dir folder.
+global int_start_frame; % first frame in the current chunk
+global int_end_frame;   % last frame in the current chunk
+global int_curr_chunk;  % current chunk number
+global int_max_chunks;  % maximum number of chunks in current video
+global int_curr_bbox;   % current bounding box
+global int_max_bboxes;  % maximum number of bounding boxes in current chunk
+global list_chunks;     % list of chunks filenames
+global str_boxdir;      % path of directory where .box files are stored
+global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
 
 if int_curr_chunk > int_max_chunks
     int_curr_video = int_curr_video + 1;
@@ -209,26 +198,23 @@ else
 end
 
 
+
 function load_curr_video(handles)
 % Initializes all the variables required for a new file, and displays the
 % first frame. Update the int_curr_video BEFORE calling this function.
 
-global bool_is_paused; % Boolean, indicates if the playback is paused
-global int_curr_frame; % number of the frame currently in view
-global int_max_frames; % maximum possible frame number for the current video
-global str_dir;        % contains 'self shot' or 'from web'
-global int_curr_video; % current video number in the str_dir folder.
-global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
-global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
-global file_prefix;    % prefix string for the image/frame files 
+global int_max_frames;  % maximum possible frame number for the current video
+global str_dir;         % contains 'self shot' or 'from web'
+global int_curr_video;  % current video number in the str_dir folder.
+global str_imDir;       % parent dir of where the image/frame files are % the complete path of the current video folder
+global list_imFiles;    % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
+global file_prefix;     % prefix string for the image/frame files 
 global str_curr_video_name; % current video name
-global int_start_frame;
-global int_end_frame;
-global int_curr_chunk;
-global int_max_chunks;
-global list_chunks;
-global str_boxdir;
-global int_max_videos;
+global int_curr_chunk;  % current chunk number
+global int_max_chunks;  % maximum number of chunks in current video
+global list_chunks;     % list of chunks filenames
+global str_boxdir;      % path of directory where .box files are stored
+global int_max_videos;  % maximum number of videos folder given by str_dir
 
 if int_curr_video < 1
     int_curr_video = 1;
@@ -259,26 +245,30 @@ int_curr_chunk = 1;
 load_curr_chunk(handles)
 
 
+
 % --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
+function figure1_CloseRequestFcn(hObject, ~, ~)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: delete(hObject) closes the figure
-global bool_is_paused;
+global bool_is_paused; % Boolean, indicates if the playback is paused
+
 bool_is_paused = true;
 pause(0.01);
 % TODO: DELETE ALL OTHER VARIABLES???
 delete(hObject);
 
 
+
 % --- Executes on button press in button_pause.
-function button_pause_Callback(hObject, eventdata, handles)
+function button_pause_Callback(~, ~, handles)
 % hObject    handle to button_pause (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global bool_is_paused;
+
+global bool_is_paused; % Boolean, indicates if the playback is paused
 
 bool_is_paused = ~bool_is_paused;
 pause(0.01); % So that the thread playing the file can stop
@@ -292,19 +282,22 @@ else
     paused(handles);
 end
 
+
+
 function paused(handles)
-global bool_is_paused;
+global bool_is_paused; % Boolean, indicates if the playback is paused
 bool_is_paused = true;
 set(handles.text_info, 'String', 'PAUSED');
 set(handles.button_pause,'String','Play');
 
+
+
 function play(handles) 
 % ONLY 1 thread should run this when bool_is_paused==false
-global bool_is_paused;
-global int_curr_frame;
-global int_max_frames;
-global str_imDir;
-global list_imFiles;
+
+global bool_is_paused; % Boolean, indicates if the playback is paused
+global int_curr_frame; % number of the frame currently in view
+global int_max_frames; % maximum possible frame number for the current video
 
 axes(handles.axes1);
 while ~bool_is_paused
@@ -322,23 +315,27 @@ while ~bool_is_paused
 end
 
 
+
 function display_curr_frame(handles)
-global int_curr_frame;
-global str_imDir;
-global list_imFiles;
-global bool_show_track_box;
-global img_curr_frame;
+global int_curr_frame;  % number of the frame currently in view
+global str_imDir;       % parent dir of where the image/frame files are % the complete path of the current video folder
+global list_imFiles;    % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
+global bool_show_track_box; % Boolean, whether to display tracked boxes
+global img_curr_frame;  % image array of current frame
+global int_start_frame; % first frame in the current chunk
 
 axes(handles.axes1);
 cla;
 img_curr_frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
 imshow(img_curr_frame);
-if bool_show_track_box
+display_tracklet(handles);
+if bool_show_track_box || int_curr_frame == int_start_frame
     display_tracking_box(handles)
 end
-display_tracklet(handles);
 drawnow;
 %drawnow;
+
+
 
 % --- Executes on key press with focus on figure1 or any of its controls.
 function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
@@ -348,16 +345,15 @@ function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
 %	Character: character interpretation of the key(s) that was pressed
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
-global int_curr_frame;
-global int_max_frames;
-global bool_is_paused;
-global bool_control_pressed;
-global bool_shift_pressed;
-global bool_alt_pressed;
-global int_curr_chunk;
-global int_curr_bbox;
-global int_curr_video;
-global bool_show_track_box;
+
+global int_curr_frame; % number of the frame currently in view
+global int_max_frames; % maximum possible frame number for the current video
+global bool_is_paused; % Boolean, indicates if the playback is paused
+global bool_control_pressed;% Boolean, indicates if CTRL is currently pressed
+global bool_shift_pressed;  % Boolean, indicates if SHIFT is currently pressed
+global bool_alt_pressed;    % Boolean, indicates if ALT is currently pressed
+global int_start_frame;     % first frame in the current chunk
+global bool_show_track_box; % Boolean, whether to display tracked boxes
 
 switch eventdata.Key
     case 'leftarrow'
@@ -370,8 +366,8 @@ switch eventdata.Key
         else
             int_curr_frame = int_curr_frame - 10;
             bool_is_paused = true;
-            if int_curr_frame < 1
-                int_curr_frame = 1;
+            if int_curr_frame < int_start_frame
+                int_curr_frame = int_start_frame;
                 set(handles.text_info, 'String', 'Reached first frame!');
             end
             display_curr_frame(handles);
@@ -433,17 +429,20 @@ end
 %alt
 %control
 
+
+
 % --- Executes on key release with focus on figure1 or any of its controls.
-function figure1_WindowKeyReleaseFcn(hObject, eventdata, handles)
+function figure1_WindowKeyReleaseFcn(~, eventdata, ~)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  structure with the following fields (see MATLAB.UI.FIGURE)
 %	Key: name of the key that was released, in lower case
 %	Character: character interpretation of the key(s) that was released
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) released
 % handles    structure with handles and user data (see GUIDATA)
-global bool_control_pressed;
-global bool_shift_pressed;
-global bool_alt_pressed;
+
+global bool_control_pressed;% Boolean, indicates if CTRL is currently pressed
+global bool_shift_pressed;  % Boolean, indicates if SHIFT is currently pressed
+global bool_alt_pressed;    % Boolean, indicates if ALT is currently pressed
 
 switch eventdata.Key
     case 'control'
@@ -454,17 +453,22 @@ switch eventdata.Key
         bool_alt_pressed = false;
 end
 
-function enter_pressed(handles)
+
+
+function enter_pressed(~)
 disp('Enter pressed');
 
 
+
 % --- Executes on button press in button_next_video.
-function button_next_video_Callback(hObject, eventdata, handles)
+function button_next_video_Callback(~, ~, handles)
 % hObject    handle to button_next_video (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global int_max_videos;
-global int_curr_video;
+
+global int_max_videos;  % maximum number of videos folder given by str_dir
+global int_curr_video;  % current video number in the str_dir folder.
+
 if int_curr_video < int_max_videos
     int_curr_video = int_curr_video + 1;
     load_curr_video(handles); % initializes the other variables corresponding to the new video, and displays the first frame.
@@ -474,13 +478,15 @@ end
 uicontrol(handles.text_status); % divert focus
 
 
+
 % --- Executes on button press in button_prev_video.
-function button_prev_video_Callback(hObject, eventdata, handles)
+function button_prev_video_Callback(~, ~, handles)
 % hObject    handle to button_prev_video (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global int_max_videos;
-global int_curr_video;
+
+global int_curr_video;  % current video number in the str_dir folder.
+
 if int_curr_video > 1
     int_curr_video = int_curr_video - 1;
     load_curr_video(handles); % initializes the other variables corresponding to the new video, and displays the first frame.
@@ -490,13 +496,16 @@ end
 uicontrol(handles.text_status); % divert focus
 
 
+
 % --- Executes on button press in button_next_bbox.
-function button_next_bbox_Callback(hObject, eventdata, handles)
+function button_next_bbox_Callback(~, ~, handles)
 % hObject    handle to button_next_bbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global int_curr_bbox;
-global int_max_bboxes;
+
+global int_curr_bbox;   % current bounding box
+global int_max_bboxes;  % maximum number of bounding boxes in current chunk
+
 if int_curr_bbox < int_max_bboxes
     int_curr_bbox = int_curr_bbox + 1;
     load_curr_bbox(handles);
@@ -506,12 +515,15 @@ end
 uicontrol(handles.text_status); % divert focus
 
 
+
 % --- Executes on button press in button_prev_bbox.
-function button_prev_bbox_Callback(hObject, eventdata, handles)
+function button_prev_bbox_Callback(~, ~, handles)
 % hObject    handle to button_prev_bbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global int_curr_bbox;
+
+global int_curr_bbox;   % current bounding box
+
 if int_curr_bbox > 1
     int_curr_bbox = int_curr_bbox - 1;
     load_curr_bbox(handles);
@@ -520,13 +532,17 @@ else
 end
 uicontrol(handles.text_status); % divert focus
 
+
+
 % --- Executes on button press in button_next_chunk.
-function button_next_chunk_Callback(hObject, eventdata, handles)
+function button_next_chunk_Callback(~, ~, handles)
 % hObject    handle to button_next_chunk (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global int_curr_chunk;
-global int_max_chunks;
+
+global int_curr_chunk;  % current chunk number
+global int_max_chunks;  % maximum number of chunks in current video
+
 if int_curr_chunk < int_max_chunks
     int_curr_chunk = int_curr_chunk + 1;
     load_curr_chunk(handles);
@@ -536,12 +552,15 @@ end
 uicontrol(handles.text_status);
 
 
+
 % --- Executes on button press in button_prev_chunk.
-function button_prev_chunk_Callback(hObject, eventdata, handles)
+function button_prev_chunk_Callback(~, ~, handles)
 % hObject    handle to button_prev_chunk (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global int_curr_chunk;
+
+global int_curr_chunk; % current chunk number
+
 if int_curr_chunk > 1
     int_curr_chunk = int_curr_chunk - 1;
     load_curr_chunk(handles);
@@ -551,42 +570,26 @@ end
 uicontrol(handles.text_status);
 
 
+
 function display_tracklet(handles)
+
+global int_curr_frame;  % number of the frame currently in view
+global int_start_frame; % first frame in the current chunk
+global int_curr_bbox;   % current bounding box
+global img_curr_frame;  % image array of current frame
+global arr_tracked_boxes;       % array with tracked box coordinates for each frame in chunk
+global int_track_box_buffer;    % the border buffer space around the bbox for tracklet
+
 axes(handles.axes2); % revert to one at the end
 
-global bool_is_paused; % Boolean, indicates if the playback is paused
-global int_curr_frame; % number of the frame currently in view
-global int_max_frames; % maximum possible frame number for the current video
-global str_dir;        % contains 'self shot' or 'from web'
-global int_curr_video; % current video number in the str_dir folder.
-global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
-global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
-global file_prefix;    % prefix string for the image/frame files 
-global str_curr_video_name; % current video name
-global int_start_frame;
-global int_end_frame;
-global int_curr_chunk;
-global int_max_chunks;
-global list_chunks;
-global str_boxdir;
-global int_max_videos;
-global int_curr_bbox;
-global str_curr_chunk_name;
-global img_curr_frame;
-
-trackFile = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
-trackBoxes = dlmread(trackFile);
-
-buff = 50;
-
-% frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
+int_track_box_buffer = 50;
 
 trackframe = int_curr_frame-int_start_frame+1;
 
-y1 = trackBoxes(trackframe,2)-buff;
-y2 = trackBoxes(trackframe,2)+trackBoxes(trackframe,4)-1+buff;
-x1 = trackBoxes(trackframe,1)-buff;
-x2 = trackBoxes(trackframe,1)+trackBoxes(trackframe,3)-1+buff;
+y1 = arr_tracked_boxes(trackframe,2)-int_track_box_buffer;
+y2 = arr_tracked_boxes(trackframe,2)+arr_tracked_boxes(trackframe,4)-1+int_track_box_buffer;
+x1 = arr_tracked_boxes(trackframe,1)-int_track_box_buffer;
+x2 = arr_tracked_boxes(trackframe,1)+arr_tracked_boxes(trackframe,3)-1+int_track_box_buffer;
 
 if y1>0 && y2<=size(img_curr_frame,1) && x1>0 && x2<=size(img_curr_frame,2)
     set(handles.text_tracklet_info, 'String', sprintf('Tracklet for BBox %d',int_curr_bbox));
@@ -598,25 +601,36 @@ end
 
 axes(handles.axes1);
 
+
+
+function display_tracking_box_in_tracklet(handles)
+
+global int_curr_frame;  % number of the frame currently in view
+global int_start_frame; % first frame in the current chunk
+global arr_tracked_boxes;       % array with tracked box coordinates for each frame in chunk
+global int_track_box_buffer;    % the border buffer space around the bbox for tracklet
+
+axes(handles.axes2); % revert to one at the end
+
+trackframe = int_curr_frame-int_start_frame+1;
+
+redbox = [int_track_box_buffer+1,int_track_box_buffer+1,arr_tracked_boxes(trackframe,3),arr_tracked_boxes(trackframe,4)];
+rectangle('Position',redbox,...
+          'EdgeColor', 'r',...
+          'LineStyle','-',...
+          'LineWidth',1);
+
+axes(handles.axes1);
+
+
+
 function display_tracking_box(handles)
-global bool_is_paused; % Boolean, indicates if the playback is paused
-global int_curr_frame; % number of the frame currently in view
-global int_max_frames; % maximum possible frame number for the current video
-global str_dir;        % contains 'self shot' or 'from web'
-global int_curr_video; % current video number in the str_dir folder.
-global str_imDir;      % parent dir of where the image/frame files are % the complete path of the current video folder
-global list_imFiles;   % cell of all image/frame filenames (e.g. self00021_00023.jpg) % all '*.jpg' file names in the current video folder.
-global file_prefix;    % prefix string for the image/frame files 
-global str_curr_video_name; % current video name
-global int_start_frame;
-global int_end_frame;
-global int_curr_chunk;
-global int_max_chunks;
-global list_chunks;
-global str_boxdir;
-global int_max_videos;
-global int_curr_bbox;
-global str_curr_chunk_name;
+
+global int_curr_frame;  % number of the frame currently in view
+global int_start_frame; % first frame in the current chunk
+global str_boxdir;      % path of directory where .box files are stored
+global int_curr_bbox;   % current bounding box
+global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
 
 trackFile = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
 trackBoxes = dlmread(trackFile);
@@ -635,15 +649,22 @@ rectangle('Position',redbox,...
           'LineStyle','-',...
           'LineWidth',1);
 
+% display in tracklet also
+display_tracking_box_in_tracklet(handles)
+
+
 
 % --- Executes on button press in toggle_track_box.
-function toggle_track_box_Callback(hObject, eventdata, handles)
+function toggle_track_box_Callback(~, ~, handles)
 % hObject    handle to toggle_track_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global bool_show_track_box;
+
+global bool_show_track_box; % Boolean, whether to display tracked boxes
 
 bool_show_track_box = ~bool_show_track_box;
 
 display_curr_frame(handles)
 uicontrol(handles.text_status);
+
+
