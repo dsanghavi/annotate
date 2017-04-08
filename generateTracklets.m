@@ -2,6 +2,7 @@
 
 clear all;
 
+global imDir;
 global imFiles;
 global arr_tracked_boxes;
 global int_start_frame;
@@ -24,6 +25,7 @@ bool_generate_images    = true;
 bool_display_images     = false;
 
 for sNum = seqStart:seqEnd
+    disp(sNum);
     seq_name = sprintf('self%05d',sNum);
     imDir = sprintf('/home/is/Occlusion Video Data/self shot/%s', seq_name);
     imageList = dir(fullfile(imDir, '*.jpg'));
@@ -42,7 +44,7 @@ for sNum = seqStart:seqEnd
     
     for trackfile_i = 1:1:size(trackfiles,2)
         [~,track_name,~] = fileparts(trackfiles{trackfile_i});
-        arr_tracked_boxes = dlmread(trackfiles{trackfile_i});
+        arr_tracked_boxes = dlmread(fullfile(boxdir,trackfiles{trackfile_i}));
         
         trackletsavedir = fullfile(trackletdir,track_name);
         if exist(trackletsavedir,'dir') ~= 7
@@ -88,6 +90,7 @@ for sNum = seqStart:seqEnd
 end
     
 function trackfileIteration()
+    global imDir;
     global imFiles;
     global arr_tracked_boxes;
     global int_start_frame;
@@ -101,7 +104,7 @@ function trackfileIteration()
     global bool_display_images;
     
     for int_curr_frame = int_start_frame:1:int_end_frame
-        img_curr_frame = imread(imFiles{int_curr_frame});
+        img_curr_frame = imread(fullfile(imDir,imFiles{int_curr_frame}));
         trackframe = int_curr_frame - int_start_frame + 1;
 
         y1 = arr_tracked_boxes(trackframe,2)-int_track_box_buffer;
