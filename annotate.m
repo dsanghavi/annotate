@@ -522,17 +522,15 @@ if bool_mode_annotate
         elseif int_focc == -2
             event_desc = 'BAD BBOX';
         end
-        choice = questdlg(sprintf('Selecting frame %d (%s) as f_occ.',int_focc,event_desc), ...
+        choice = questdlg(sprintf('Selecting frame %d (%s) as f_occ.\n\nHit ESCAPE to ABORT.',int_focc,event_desc), ...
             'Confirm Action', ...
-            'Continue','Abort','Continue');
+            'Continue','Continue','Continue');
         % Handle response
         switch choice
             case 'Continue'
                 fileID = fopen(str_fullfile,'w');
                 fprintf(fileID,'%d', int_focc); % Integers.
                 fclose(fileID);
-            case {'Abort',''}
-                % Do nothing.
         end
     end
 end
