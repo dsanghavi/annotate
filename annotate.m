@@ -408,7 +408,9 @@ switch eventdata.Key
             paused(handles);
         end
     case 'return'
-        enter_pressed(handles);
+        if bool_control_pressed
+            enter_pressed(handles,1);
+        end
     case 'control'
         bool_control_pressed = true;
     case 'shift'
@@ -427,6 +429,14 @@ switch eventdata.Key
         if bool_control_pressed
             set(handles.checkbox_rewrite_file,'Value',~get(handles.checkbox_rewrite_file, 'Value'));
             checkbox_rewrite_file_Callback(hObject, eventdata, handles);
+        end
+    case '0'
+        if bool_control_pressed
+            enter_pressed(handles,0);
+        end
+    case 'f'
+        if bool_control_pressed
+            enter_pressed(handles,-1);
         end
     otherwise
         disp(eventdata.Key); % remove after dev.
@@ -463,13 +473,16 @@ end
 
 
 
-function enter_pressed(handles)
+function enter_pressed(handles,int_focc)
 global bool_mode_annotate;  % Boolean, 'ANNOTATE' mode or 'VIEW' mode
 global str_boxdir;          % path of directory where .box files are stored
 global int_curr_bbox;       % current bounding box
 global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
 global int_curr_frame;      % number of the frame currently in view
 
+if int_focc == 1
+    int_focc = int_curr_frame;
+end
 if bool_mode_annotate
     % Ensure no files are overwritten by mistake.
     str_fullfile = fullfile(str_boxdir, sprintf('%s_%03d.focc',str_curr_chunk_name,int_curr_bbox));
@@ -478,10 +491,10 @@ if bool_mode_annotate
         h = msgbox({'File Exists!' 'Please enable Rewrite File'},'Warning');
         
     else
-        h = myquestdlg(sprintf('Selecting frame %d as f_occ.',int_curr_frame));
+        h = myquestdlg(sprintf('Selecting frame %d as f_occ.',int_focc));
         if strcmp(h,'Yes')
             fileID = fopen(str_fullfile,'w');
-            fprintf(fileID,'%d', int_curr_frame); % Integers.
+            fprintf(fileID,'%d', int_focc); % Integers.
             fclose(fileID);
         end
     end
