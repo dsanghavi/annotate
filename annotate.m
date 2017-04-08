@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 06-Apr-2017 21:13:06
+% Last Modified by GUIDE v2.5 08-Apr-2017 00:22:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -728,7 +728,7 @@ uicontrol(handles.text_status);
 
 
 % --- Executes on button press in toggle_mode.
-function toggle_mode_Callback(hObject, eventdata, handles)
+function toggle_mode_Callback(~, ~, handles)
 % hObject    handle to toggle_mode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -750,4 +750,40 @@ uicontrol(handles.text_status);
 % --- Executes on button press in checkbox_rewrite_file.
 function checkbox_rewrite_file_Callback(hObject, eventdata, handles)
 % Simply remove from focus
+uicontrol(handles.text_status);
+
+
+
+function input_Callback(~, ~, handles)
+% hObject    handle to input (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_curr_video;
+
+int_curr_video = str2num(get(handles.input,'String'));
+load_curr_video(handles);
+uicontrol(handles.text_status);
+
+% --- Executes during object creation, after setting all properties.
+function input_CreateFcn(hObject, ~, ~)
+% hObject    handle to input (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in button_jump_to_video.
+function button_jump_to_video_Callback(~, ~, handles)
+% hObject    handle to button_jump_to_video (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_curr_video;
+
+int_curr_video = str2num(get(handles.input,'String'));
+load_curr_video(handles);
 uicontrol(handles.text_status);
