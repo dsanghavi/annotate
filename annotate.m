@@ -309,6 +309,9 @@ global int_max_frames; % maximum possible frame number for the current video
 
 axes(handles.axes1);
 while ~bool_is_paused
+    set(handles.text_info, 'String', 'PLAYING');
+    set(handles.button_pause,'String','Pause');
+    
     int_curr_frame = int_curr_frame + 1;
     if int_curr_frame > int_max_frames
         int_curr_frame = int_max_frames;
@@ -317,9 +320,6 @@ while ~bool_is_paused
     end
     
     display_curr_frame(handles)
-    
-    set(handles.text_info, 'String', 'PLAYING');
-    set(handles.button_pause,'String','Pause');
     
     pause(0.001); % some playback speed control, apparently...
 end
@@ -333,7 +333,6 @@ global list_imFiles;    % cell of all image/frame filenames (e.g. self00021_0002
 global bool_show_track_box; % Boolean, whether to display tracked boxes
 global img_curr_frame;  % image array of current frame
 global int_start_frame; % first frame in the current chunk
-global int_max_frames;  % maximum possible frame number for the current video
 
 axes(handles.axes1);
 
@@ -514,7 +513,16 @@ if bool_mode_annotate
         % end
         
         % Construct a questdlg
-        choice = questdlg(sprintf('Selecting frame %d as f_occ.',int_focc), ...
+        if int_focc > 0
+            event_desc = 'OCCLUSION';
+        elseif int_focc == 0
+            event_desc = 'NO OCCLUSION';
+        elseif int_focc == -1
+            event_desc = 'TRACKER FAILURE';
+        elseif int_focc == -2
+            event_desc = 'BAD BBOX';
+        end
+        choice = questdlg(sprintf('Selecting frame %d (%s) as f_occ.',int_focc,event_desc), ...
             'Confirm Action', ...
             'Continue','Abort','Continue');
         % Handle response
