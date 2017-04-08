@@ -18,7 +18,7 @@ global bool_display_images;
 seqStart = 1;
 seqEnd = 46;
 
-int_track_box_buffer    = 50;
+int_track_box_buffer    = 50; % CHANGED to +50% of box size, upto max of 50
 
 bool_generate_video     = true;
 bool_generate_images    = true;
@@ -106,6 +106,11 @@ function trackfileIteration()
     for int_curr_frame = int_start_frame:1:int_end_frame
         img_curr_frame = imread(fullfile(imDir,imFiles{int_curr_frame}));
         trackframe = int_curr_frame - int_start_frame + 1;
+        
+        int_track_box_buffer = round(((arr_tracked_boxes(trackframe,3) + arr_tracked_boxes(trackframe,4)) / 2) * 0.5 + 0.49);
+        if int_track_box_buffer > 50
+            int_track_box_buffer = 50;
+        end
 
         y1 = arr_tracked_boxes(trackframe,2)-int_track_box_buffer;
         y2 = arr_tracked_boxes(trackframe,2)+arr_tracked_boxes(trackframe,4)-1+int_track_box_buffer;
