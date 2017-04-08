@@ -147,11 +147,10 @@ else
     arr_tracked_boxes = dlmread(file_track);
 
     display_curr_frame(handles)
-    %imshow(imread(fullfile(str_imDir, list_imFiles{int_curr_frame}))); % shifted to bbox
+    
     display_tracking_box(handles) % ONLY FOR FIRST FRAME
 
     % Update corresponding GUI text
-    set(handles.text_curr_frame, 'String', int_curr_frame);
     set(handles.text_curr_video, 'String', ...
         sprintf('Video: %s        Chunk: %s        BBox: %d', ...
                 str_curr_video_name, str_curr_chunk_name, int_curr_bbox));
@@ -312,15 +311,16 @@ axes(handles.axes1);
 while ~bool_is_paused
     set(handles.text_info, 'String', 'PLAYING');
     set(handles.button_pause,'String','Pause');
-    display_curr_frame(handles)
-    set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
-
-    pause(0.001*2); % approx 33 fps in original dim
+    
     int_curr_frame = int_curr_frame + 1;
     if int_curr_frame > int_max_frames
         bool_is_paused = true;
         set(handles.text_info,'String','Reached last frame in chunk!');
     end
+    
+    display_curr_frame(handles)
+    
+    pause(0.001); % some playback speed control, apparently...
 end
 
 
@@ -334,15 +334,21 @@ global img_curr_frame;  % image array of current frame
 global int_start_frame; % first frame in the current chunk
 
 axes(handles.axes1);
+
 cla;
+
 img_curr_frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
+
 imshow(img_curr_frame);
+set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
+
 display_tracklet(handles);
+
 if bool_show_track_box || int_curr_frame == int_start_frame
     display_tracking_box(handles)
 end
+
 drawnow;
-%drawnow;
 
 
 
@@ -375,13 +381,12 @@ switch eventdata.Key
             button_prev_video_Callback(hObject, eventdata, handles);
         else
             int_curr_frame = int_curr_frame - 10;
-            bool_is_paused = true;
+%             bool_is_paused = true;
             if int_curr_frame < int_start_frame
                 int_curr_frame = int_start_frame;
                 set(handles.text_info, 'String', 'Reached first frame!');
             end
             display_curr_frame(handles);
-            set(handles.text_curr_frame, 'String', num2str(int_curr_frame));
         end
     case 'rightarrow'
         if bool_shift_pressed
@@ -392,13 +397,12 @@ switch eventdata.Key
             button_next_video_Callback(hObject, eventdata, handles);
         else
             int_curr_frame = int_curr_frame + 10;
-            bool_is_paused = true;
+%             bool_is_paused = true;
             if int_curr_frame > int_max_frames
                 int_curr_frame = int_max_frames;
                 set(handles.text_info,'String','Reached last frame in chunk!');
             end
             display_curr_frame(handles);
-            set(handles.text_curr_frame, 'String',num2str(int_curr_frame));
         end
     case 'space'
         bool_is_paused = ~bool_is_paused;
