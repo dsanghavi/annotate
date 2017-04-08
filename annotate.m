@@ -339,14 +339,6 @@ axes(handles.axes1);
 
 cla;
 
-if int_curr_frame < int_start_frame
-    int_curr_frame = int_start_frame;
-    set(handles.text_info, 'String', 'Reached first frame!');
-elseif int_curr_frame > int_max_frames
-    int_curr_frame = int_max_frames;
-    set(handles.text_info,'String','Reached last frame in chunk!');
-end
-
 img_curr_frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
 
 imshow(img_curr_frame);
@@ -391,6 +383,10 @@ switch eventdata.Key
             button_prev_video_Callback(hObject, eventdata, handles);
         else
             int_curr_frame = int_curr_frame - 10;
+            if int_curr_frame < int_start_frame
+                int_curr_frame = int_start_frame;
+                set(handles.text_info, 'String', 'Reached first frame!');
+            end
             display_curr_frame(handles);
         end
     case 'rightarrow'
@@ -402,13 +398,25 @@ switch eventdata.Key
             button_next_video_Callback(hObject, eventdata, handles);
         else
             int_curr_frame = int_curr_frame + 10;
+            if int_curr_frame > int_max_frames
+                int_curr_frame = int_max_frames;
+                set(handles.text_info,'String','Reached last frame in chunk!');
+            end
             display_curr_frame(handles);
         end
     case {'q', 'j'}
         int_curr_frame = int_curr_frame - 1;
+        if int_curr_frame < int_start_frame
+            int_curr_frame = int_start_frame;
+            set(handles.text_info, 'String', 'Reached first frame!');
+        end
         display_curr_frame(handles);
     case {'e', 'l'}
         int_curr_frame = int_curr_frame + 1;
+        if int_curr_frame > int_max_frames
+            int_curr_frame = int_max_frames;
+            set(handles.text_info,'String','Reached last frame in chunk!');
+        end
         display_curr_frame(handles);
     case 'space'
         bool_is_paused = ~bool_is_paused;
@@ -493,14 +501,30 @@ if bool_mode_annotate
     % Ensure no files are overwritten by mistake.
     str_fullfile = fullfile(str_boxdir, sprintf('%s_%03d.focc',str_curr_chunk_name,int_curr_bbox));
     if exist(str_fullfile,'file')==2 && ~get(handles.checkbox_rewrite_file,'Value')
-        % set(handles.text_info,'String','FILE EXISTS! Please check the Rewrite File checkbox to proceed.');
+        paused(handles);
         h = msgbox({'File Exists!' 'Please enable Rewrite File'},'Warning');
     else
-        h = myquestdlg(sprintf('Selecting frame %d as f_occ.',int_focc));
-        if strcmp(h,'Yes')
-            fileID = fopen(str_fullfile,'w');
-            fprintf(fileID,'%d', int_focc); % Integers.
-            fclose(fileID);
+        paused(handles);
+        
+        % h = myquestdlg(sprintf('Selecting frame %d as f_occ.',int_focc));
+        % if strcmp(h,'Yes')
+        %     fileID = fopen(str_fullfile,'w');
+        %     fprintf(fileID,'%d', int_focc); % Integers.
+        %     fclose(fileID);
+        % end
+        
+        % Construct a questdlg
+        choice = questdlg(sprintf('Selecting frame %d as f_occ.',int_focc), ...
+            'Confirm Action', ...
+            'Continue','Abort','Continue');
+        % Handle response
+        switch choice
+            case 'Continue'
+                fileID = fopen(str_fullfile,'w');
+                fprintf(fileID,'%d', int_focc); % Integers.
+                fclose(fileID);
+            case {'Abort',''}
+                % Do nothing.
         end
     end
 end
@@ -633,9 +657,12 @@ global int_track_box_buffer;    % the border buffer space around the bbox for tr
 
 axes(handles.axes2); % revert to one at the end
 
-int_track_box_buffer = 50;
-
 trackframe = int_curr_frame-int_start_frame+1;
+
+int_track_box_buffer = round(((arr_tracked_boxes(trackframe,3) + arr_tracked_boxes(trackframe,4)) / 2) * 0.5 + 0.49);
+if int_track_box_buffer > 50
+    int_track_box_buffer = 50;
+end
 
 y1 = arr_tracked_boxes(trackframe,2)-int_track_box_buffer;
 y2 = arr_tracked_boxes(trackframe,2)+arr_tracked_boxes(trackframe,4)-1+int_track_box_buffer;
