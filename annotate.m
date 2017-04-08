@@ -309,16 +309,17 @@ global int_max_frames; % maximum possible frame number for the current video
 
 axes(handles.axes1);
 while ~bool_is_paused
-    set(handles.text_info, 'String', 'PLAYING');
-    set(handles.button_pause,'String','Pause');
-    
     int_curr_frame = int_curr_frame + 1;
     if int_curr_frame > int_max_frames
+        int_curr_frame = int_max_frames;
         bool_is_paused = true;
         set(handles.text_info,'String','Reached last frame in chunk!');
     end
     
     display_curr_frame(handles)
+    
+    set(handles.text_info, 'String', 'PLAYING');
+    set(handles.button_pause,'String','Pause');
     
     pause(0.001); % some playback speed control, apparently...
 end
@@ -332,10 +333,19 @@ global list_imFiles;    % cell of all image/frame filenames (e.g. self00021_0002
 global bool_show_track_box; % Boolean, whether to display tracked boxes
 global img_curr_frame;  % image array of current frame
 global int_start_frame; % first frame in the current chunk
+global int_max_frames;  % maximum possible frame number for the current video
 
 axes(handles.axes1);
 
 cla;
+
+if int_curr_frame < int_start_frame
+    int_curr_frame = int_start_frame;
+    set(handles.text_info, 'String', 'Reached first frame!');
+elseif int_curr_frame > int_max_frames
+    int_curr_frame = int_max_frames;
+    set(handles.text_info,'String','Reached last frame in chunk!');
+end
 
 img_curr_frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
 
@@ -381,11 +391,6 @@ switch eventdata.Key
             button_prev_video_Callback(hObject, eventdata, handles);
         else
             int_curr_frame = int_curr_frame - 10;
-%             bool_is_paused = true;
-            if int_curr_frame < int_start_frame
-                int_curr_frame = int_start_frame;
-                set(handles.text_info, 'String', 'Reached first frame!');
-            end
             display_curr_frame(handles);
         end
     case 'rightarrow'
@@ -397,13 +402,14 @@ switch eventdata.Key
             button_next_video_Callback(hObject, eventdata, handles);
         else
             int_curr_frame = int_curr_frame + 10;
-%             bool_is_paused = true;
-            if int_curr_frame > int_max_frames
-                int_curr_frame = int_max_frames;
-                set(handles.text_info,'String','Reached last frame in chunk!');
-            end
             display_curr_frame(handles);
         end
+    case {'q', 'j'}
+        int_curr_frame = int_curr_frame - 1;
+        display_curr_frame(handles);
+    case {'e', 'l'}
+        int_curr_frame = int_curr_frame + 1;
+        display_curr_frame(handles);
     case 'space'
         bool_is_paused = ~bool_is_paused;
         if ~bool_is_paused
@@ -412,9 +418,7 @@ switch eventdata.Key
             paused(handles);
         end
     case 'return'
-        if bool_control_pressed
-            enter_pressed(handles,1);
-        end
+        enter_pressed(handles,1);
     case 'control'
         bool_control_pressed = true;
     case 'shift'
@@ -435,13 +439,11 @@ switch eventdata.Key
             checkbox_rewrite_file_Callback(hObject, eventdata, handles);
         end
     case '0'
-        if bool_control_pressed
-            enter_pressed(handles,0);
-        end
+        enter_pressed(handles,0);
     case 'f'
-        if bool_control_pressed
-            enter_pressed(handles,-1);
-        end
+        enter_pressed(handles,-1);
+    case 'b'
+        enter_pressed(handles,-2);
     otherwise
         disp(eventdata.Key); % remove after dev.
 end
@@ -493,7 +495,6 @@ if bool_mode_annotate
     if exist(str_fullfile,'file')==2 && ~get(handles.checkbox_rewrite_file,'Value')
         % set(handles.text_info,'String','FILE EXISTS! Please check the Rewrite File checkbox to proceed.');
         h = msgbox({'File Exists!' 'Please enable Rewrite File'},'Warning');
-        
     else
         h = myquestdlg(sprintf('Selecting frame %d as f_occ.',int_focc));
         if strcmp(h,'Yes')
@@ -715,6 +716,13 @@ global bool_show_track_box; % Boolean, whether to display tracked boxes
 bool_show_track_box = ~bool_show_track_box;
 
 display_curr_frame(handles)
+
+if bool_show_track_box
+    set(handles.toggle_track_box,'String','SHOWING Tracked Box');
+else
+    set(handles.toggle_track_box,'String','NOT Showing Tracked Box');
+end
+
 uicontrol(handles.text_status);
 
 
