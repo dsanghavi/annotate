@@ -1,7 +1,7 @@
 % multi box show track boxes
 
 vid_i = 1;
-chunk_name = '00001_00500';
+chunk_name = '00001_00343';
 box_i = 1;
 
 seq_name = sprintf('self%05d',vid_i);
@@ -36,7 +36,7 @@ end
 start_i = str2num(chunk_name(1:5));
 end_i = str2num(chunk_name(7:11));
 for j = start_i:10:end_i
-    imshow(imFiles{j});
+    imshow(fullfile(imDir,imFiles{j}));
     for i = 1:1:size(trackfiles,2)
         rectangle('Position',trackboxes(j-start_i+1,:,i),...
                   'EdgeColor', 'r',...

@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 08-Apr-2017 20:51:57
+% Last Modified by GUIDE v2.5 09-Apr-2017 16:37:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,13 +60,15 @@ global file_prefix;    % prefix string for the image/frame files
 global str_dir;        % 'self shot' or 'from web'
 global int_max_videos; % maximum number of videos folder given by str_dir
 global bool_show_track_box; % Boolean, whether to display tracked boxes
-global bool_mode_annotate;  % Boolean, 'ANNOTATE' mode or 'VIEW' mode
 global bool_control_pressed;% Boolean, indicates if CTRL is currently pressed
 global bool_shift_pressed;  % Boolean, indicates if SHIFT is currently pressed
 global bool_alt_pressed;    % Boolean, indicates if ALT is currently pressed
+global int_mode; % maintains the mode. 1 = VIEW, 2 = ANNOTATE, 3 = REVIEW
+global int_play_prev;   % For review mode, play tracklets from f_occ - int_play_prev
 
+int_mode = 1;
+int_play_prev = 0;
 bool_show_track_box = false;
-bool_mode_annotate = false;
 
 bool_control_pressed = false;
 bool_shift_pressed = false;
@@ -131,6 +133,9 @@ global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
 global int_max_videos;  % maximum number of videos folder given by str_dir
 global arr_tracked_boxes;   % array with tracked box coordinates for each frame in chunk
 global str_boxdir;      % path of directory where .box files are stored
+global int_mode;        % 1=VIEW, 2=ANNOTATE, 3=REVIEW
+global int_focc;        % Stores f_occ for current bbox
+global int_play_prev;   % For review mode, play tracklets from f_occ - int_play_prev
 
 axes(handles.axes1);
 
@@ -141,15 +146,30 @@ else
     bool_is_paused = true;
 
     int_curr_frame = int_start_frame; % default
+    if int_mode == 3 % REVIEW
+        % First, read int_focc
+        focc_file = fopen(fullfile(str_boxdir,sprintf('%s_%03d.focc',str_curr_chunk_name,int_curr_bbox)), 'r');
+        if focc_file == -1 % file does not exist
+            set(handles.text_review, 'String','.focc file does not exist.');
+        else
+            int_focc = fscanf(focc_file,'%d');
+            set(handles.text_review, 'String',sprintf('f_occ = %d',int_focc));
+        end
+        % Then, seek to appropriate place.
+        if int_focc> (int_start_frame + int_play_prev) 
+            int_curr_frame = int_focc - int_play_prev;
+            disp(sprintf('%d, %d, %d',int_curr_frame, int_focc, int_play_prev));
+        end
+    end
+    
     int_max_frames = int_end_frame;
 
     file_track = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
     arr_tracked_boxes = dlmread(file_track);
 
+    
     display_curr_frame(handles)
     
-    display_tracking_box(handles) % ONLY FOR FIRST FRAME
-
     % Update corresponding GUI text
     set(handles.text_curr_video, 'String', ...
         sprintf('Video: %s        Chunk: %s        BBox: %d', ...
@@ -158,6 +178,9 @@ else
         sprintf('Max Videos: %d        Max Chunks: %d        Max BBoxes: %d', ...
                 int_max_videos, int_max_chunks, int_max_bboxes));
     set(handles.text_info, 'String', 'Ready to play.');
+    
+    
+
 end
 
 
@@ -292,6 +315,7 @@ end
 
 function paused(handles)
 global bool_is_paused; % Boolean, indicates if the playback is paused
+
 bool_is_paused = true;
 set(handles.text_info, 'String', 'PAUSED');
 set(handles.button_pause,'String','Play');
@@ -306,8 +330,15 @@ function play(handles)
 global bool_is_paused; % Boolean, indicates if the playback is paused
 global int_curr_frame; % number of the frame currently in view
 global int_max_frames; % maximum possible frame number for the current video
+global int_focc;       % f_occ for the current bbox
+global bool_paused_at_focc; % true if the last pause was caused by int_curr_frame == int_focc
 
 axes(handles.axes1);
+
+if bool_paused_at_focc
+    set(handles.text_tracklet_top,'String','Playing from f_occ')
+end
+
 while ~bool_is_paused
     set(handles.text_info, 'String', 'PLAYING');
     set(handles.button_pause,'String','Pause');
@@ -317,6 +348,12 @@ while ~bool_is_paused
         int_curr_frame = int_max_frames;
         bool_is_paused = true;
         set(handles.text_info,'String','Reached last frame in chunk!');
+    end
+    
+    if int_curr_frame == int_focc
+        bool_is_paused = true;
+        set(handles.text_tracklet_top,'String','Stopped at f_occ')
+        bool_paused_at_focc = true;
     end
     
     display_curr_frame(handles)
@@ -333,6 +370,9 @@ global list_imFiles;    % cell of all image/frame filenames (e.g. self00021_0002
 global bool_show_track_box; % Boolean, whether to display tracked boxes
 global img_curr_frame;  % image array of current frame
 global int_start_frame; % first frame in the current chunk
+global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW
+global int_focc;
+global int_play_prev;
 
 axes(handles.axes1);
 
@@ -341,12 +381,18 @@ cla;
 img_curr_frame = imread(fullfile(str_imDir, list_imFiles{int_curr_frame}));
 
 imshow(img_curr_frame);
-set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame on the GUI
+set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame number on the GUI
 
 display_tracklet(handles);
 
 if bool_show_track_box || int_curr_frame == int_start_frame
     display_tracking_box(handles)
+end
+
+if int_mode == 3 % REVIEW Mode
+    if int_curr_frame == int_focc - int_play_prev
+        display_tracking_box(handles)
+    end
 end
 
 drawnow;
@@ -370,7 +416,7 @@ global bool_shift_pressed;  % Boolean, indicates if SHIFT is currently pressed
 global bool_alt_pressed;    % Boolean, indicates if ALT is currently pressed
 global int_start_frame;     % first frame in the current chunk
 global bool_show_track_box; % Boolean, whether to display tracked boxes
-global bool_mode_annotate;  % Boolean, 'ANNOTATE' mode or 'VIEW' mode
+global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW
 
 switch eventdata.Key
     case 'leftarrow'
@@ -437,8 +483,12 @@ switch eventdata.Key
         toggle_track_box_Callback(hObject, eventdata, handles);
     case 'a'
         if bool_control_pressed
-            set(handles.toggle_mode,'Value',~bool_mode_annotate);
-            toggle_mode_Callback(hObject, eventdata, handles);
+            int_mode = int_mode + 1;
+            if int_mode > 3
+                int_mode = 1;
+            end
+            set(handles.listbox_mode,'Value',int_mode); % Ctrl + a will only switch to annotate mode and back.
+            listbox_mode_Callback(hObject, eventdata, handles);
         end
     case 'r'
         if bool_control_pressed
@@ -487,16 +537,16 @@ end
 
 
 function enter_pressed(handles,int_focc)
-global bool_mode_annotate;  % Boolean, 'ANNOTATE' mode or 'VIEW' mode
 global str_boxdir;          % path of directory where .box files are stored
 global int_curr_bbox;       % current bounding box
 global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
 global int_curr_frame;      % number of the frame currently in view
+global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW
 
 if int_focc == 1
     int_focc = int_curr_frame;
 end
-if bool_mode_annotate
+if int_mode == 2 % ANNOTATE mode
     % Ensure no files are overwritten by mistake.
     str_fullfile = fullfile(str_boxdir, sprintf('%s_%03d.focc',str_curr_chunk_name,int_curr_bbox));
     if exist(str_fullfile,'file')==2 && ~get(handles.checkbox_rewrite_file,'Value')
@@ -760,26 +810,6 @@ uicontrol(handles.text_status);
 
 
 
-% --- Executes on button press in toggle_mode.
-function toggle_mode_Callback(~, ~, handles)
-% hObject    handle to toggle_mode (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of toggle_mode
-global bool_mode_annotate;
-
-bool_mode_annotate = get(handles.toggle_mode,'Value');
-if bool_mode_annotate
-    set(handles.toggle_mode,'String','Mode: ANNOTATE')
-    set(handles.checkbox_rewrite_file, 'Visible','on')
-else
-    set(handles.toggle_mode,'String','Mode: VIEW')
-    set(handles.checkbox_rewrite_file, 'Visible','off')
-end
-uicontrol(handles.text_status);
-
-
 % --- Executes on button press in checkbox_rewrite_file.
 function checkbox_rewrite_file_Callback(hObject, eventdata, handles)
 % Simply remove from focus
@@ -823,7 +853,7 @@ uicontrol(handles.text_status);
 
 
 function continue_annotation_from(int_vid,handles)
-% TODO select first bbox that doesnt have f_occ file.
+% Selects first bbox that doesnt have f_occ file.
 global int_max_videos;
 global int_curr_video;
 global int_curr_chunk;
@@ -856,4 +886,89 @@ function button_continue_from_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 continue_annotation_from(str2num(get(handles.input,'String')), handles)
+uicontrol(handles.text_status);
+
+
+
+% --- Executes on selection change in listbox_mode.
+function listbox_mode_Callback(hObject, eventdata, handles)
+% hObject    handle to listbox_mode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_mode; % 0 for VIEW, 1 for ANNOTATE, 2 for REVIEW
+
+%contents = cellstr(get(hObject,'String')); % returns listbox_mode contents
+%as cell array. Can access index-wise to get the string selected.
+int_mode = get(handles.listbox_mode,'Value'); % returns selected index
+if int_mode == 2
+    set(handles.checkbox_rewrite_file, 'Visible','on')
+    set(handles.button_continue_from, 'Visible','on')
+else
+    set(handles.checkbox_rewrite_file, 'Visible','off')
+    set(handles.button_continue_from, 'Visible','off')
+end
+if int_mode == 3
+    set(handles.text_review, 'Visible','on')
+    set(handles.text_tracklet_top, 'Visible','on')
+    set(handles.button_play_prev, 'Visible','on')
+    set(handles.edit_play_prev, 'Visible','on')
+else
+    set(handles.text_review, 'Visible','off')
+    set(handles.text_tracklet_top, 'Visible','off')
+    set(handles.button_play_prev, 'Visible','off')
+    set(handles.edit_play_prev, 'Visible','off')
+end
+uicontrol(handles.text_status);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function listbox_mode_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listbox_mode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+modes = {'VIEW Mode','ANNOTATE Mode','REVIEW Mode'};
+set(hObject, 'String', modes);
+
+
+
+function edit_play_prev_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_play_prev (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_play_prev; % For review mode, play tracklets from f_occ - int_play_prev
+
+int_play_prev = str2num(get(handles.edit_play_prev,'String'))
+uicontrol(handles.text_status);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_play_prev_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_play_prev (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+% --- Executes on button press in button_play_prev.
+function button_play_prev_Callback(hObject, eventdata, handles)
+% hObject    handle to button_play_prev (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_play_prev; % For review mode, play tracklets from f_occ - int_play_prev
+
+int_play_prev = str2num(get(handles.input,'String'));
 uicontrol(handles.text_status);
