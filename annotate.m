@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 08-Apr-2017 00:22:20
+% Last Modified by GUIDE v2.5 08-Apr-2017 20:51:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -819,4 +819,35 @@ global int_curr_video;
 
 int_curr_video = str2num(get(handles.input,'String'));
 load_curr_video(handles);
+uicontrol(handles.text_status);
+
+
+function continue_annotation_from(int_vid,handles)
+% TODO select first bbox that doesnt have f_occ file.
+global int_max_videos;
+global int_curr_video;
+global str_boxdir;      % path of directory where .box, .focc files are stored
+global int_curr_bbox;   % current bounding box
+global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
+
+int_curr_video = int_vid;
+load_curr_video(handles);
+
+while int_curr_video <= int_max_videos
+    foccFile = fullfile(str_boxdir, sprintf('%s_%03d.focc',str_curr_chunk_name,int_curr_bbox));
+    fileID = fopen(foccFile,'r');
+    if fileID == -1
+        break;
+    end
+    int_curr_bbox = int_curr_bbox + 1;
+    load_curr_bbox(handles);
+end
+
+
+% --- Executes on button press in button_continue_from.
+function button_continue_from_Callback(hObject, eventdata, handles)
+% hObject    handle to button_continue_from (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+continue_annotation_from(str2num(get(handles.input,'String')), handles)
 uicontrol(handles.text_status);
