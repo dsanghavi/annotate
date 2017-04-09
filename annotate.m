@@ -826,14 +826,17 @@ function continue_annotation_from(int_vid,handles)
 % TODO select first bbox that doesnt have f_occ file.
 global int_max_videos;
 global int_curr_video;
+global int_curr_chunk;
+global int_max_chunks;
 global str_boxdir;      % path of directory where .box, .focc files are stored
 global int_curr_bbox;   % current bounding box
+global int_max_bboxes;  % maximum number of bounding boxes in current chunk
 global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
 
 int_curr_video = int_vid;
 load_curr_video(handles);
 
-while int_curr_video <= int_max_videos
+while true
     foccFile = fullfile(str_boxdir, sprintf('%s_%03d.focc',str_curr_chunk_name,int_curr_bbox));
     fileID = fopen(foccFile,'r');
     if fileID == -1
@@ -841,6 +844,9 @@ while int_curr_video <= int_max_videos
     end
     int_curr_bbox = int_curr_bbox + 1;
     load_curr_bbox(handles);
+    if int_curr_video==int_max_videos && int_curr_chunk==int_max_chunks && int_curr_bbox==int_max_bboxes 
+        break;
+    end
 end
 
 
