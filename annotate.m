@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 09-Apr-2017 22:43:46
+% Last Modified by GUIDE v2.5 09-Apr-2017 23:11:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -176,8 +176,9 @@ else
     file_track = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
     arr_tracked_boxes = dlmread(file_track);
 
-    
     display_curr_frame(handles)
+    
+    display_dist_plot(handles);
     
     % Update corresponding GUI text
     set(handles.text_curr_video, 'String', ...
@@ -392,8 +393,10 @@ set(handles.text_curr_frame,'String',int_curr_frame); % Show the current frame n
 display_tracklet(handles);
 
 if bool_show_track_box || int_curr_frame == int_start_frame
-    display_tracking_box(handles)
+    display_tracking_box(handles);
 end
+
+display_current_frame_line_in_plot(handles);
 
 if int_mode == 3 % REVIEW Mode
     if int_curr_frame == int_focc - int_play_prev
@@ -708,6 +711,51 @@ uicontrol(handles.text_status);
 
 
 
+function display_dist_plot(handles)
+
+global str_boxdir;      % path of directory where .box files are stored
+global int_curr_bbox;   % current bounding box
+global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
+global arr_dist_plot;   % array for L2 distances of DFs
+global int_focc;        % Stores f_occ for current bbox
+global int_start_frame; % first frame in the current chunk
+global int_end_frame;   % last frame in the current chunk
+
+axes(handles.axes3); % revert to one at the end
+
+distFile = fullfile(str_boxdir, sprintf('%s_%03d_df.dist',str_curr_chunk_name,int_curr_bbox));
+arr_dist_plot = dlmread(distFile);
+
+arr_dist_plot = [0; arr_dist_plot]; % add a 0 in the beginning
+x = int_start_frame:1:int_end_frame;
+
+plot(x,arr_dist_plot);
+
+if int_focc > 0
+    line([int_focc int_focc],[0 1],'Color','r');
+end
+
+axes(handles.axes1);
+
+
+
+function display_current_frame_line_in_plot(handles)
+
+global int_curr_frame;  % number of the frame currently in view
+global line_handle;     % line handle for current frame line
+
+axes(handles.axes3); % revert to one at the end
+
+try
+    delete(line_handle);
+catch
+end
+line_handle = line([int_curr_frame int_curr_frame],[0 1],'Color','k');
+
+axes(handles.axes1);
+
+
+
 function display_tracklet(handles)
 
 global int_curr_frame;  % number of the frame currently in view
@@ -920,6 +968,7 @@ if int_mode == 3
     set(handles.edit_play_prev, 'Visible','on')
     set(handles.button_view_only, 'Visible','on')
     set(handles.edit_view_only, 'Visible','on')
+%    set(handles.axes3, 'Visible','on')
 else
     set(handles.text_review, 'Visible','off')
     set(handles.text_tracklet_top, 'Visible','off')
@@ -927,6 +976,7 @@ else
     set(handles.edit_play_prev, 'Visible','off')
     set(handles.button_view_only, 'Visible','off')
     set(handles.edit_view_only, 'Visible','off')
+%    set(handles.axes3, 'Visible','off')
 end
 uicontrol(handles.text_status);
 
@@ -992,8 +1042,8 @@ function edit_view_only_Callback(hObject, eventdata, handles)
 global int_view_only; % Ground truth tag examples to display. For review mode
 
 text = get(handles.edit_view_only,'String');
-if text=='ALL'
-    text = 2;
+if strcmp(text,'ALL')
+    text = '2';
 end
 int_view_only = str2num(text);
 uicontrol(handles.text_status);
