@@ -24,7 +24,7 @@ function varargout = annotate(varargin)
 
 % Edit the above text to modify the response to help annotate
 
-% Last Modified by GUIDE v2.5 09-Apr-2017 16:37:29
+% Last Modified by GUIDE v2.5 09-Apr-2017 22:43:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -65,9 +65,11 @@ global bool_shift_pressed;  % Boolean, indicates if SHIFT is currently pressed
 global bool_alt_pressed;    % Boolean, indicates if ALT is currently pressed
 global int_mode; % maintains the mode. 1 = VIEW, 2 = ANNOTATE, 3 = REVIEW
 global int_play_prev;   % For review mode, play tracklets from f_occ - int_play_prev
+global int_view_only; % Ground truth tag examples to display. For review mode. 1 = any f_occ > 0. 2 = all. rest = itself.
 
 int_mode = 1;
 int_play_prev = 1;
+int_view_only = 2; % default is view all.
 bool_show_track_box = false;
 
 bool_control_pressed = false;
@@ -136,12 +138,13 @@ global str_boxdir;      % path of directory where .box files are stored
 global int_mode;        % 1=VIEW, 2=ANNOTATE, 3=REVIEW
 global int_focc;        % Stores f_occ for current bbox
 global int_play_prev;   % For review mode, play tracklets from f_occ - int_play_prev
+global int_view_only;   % Tag examples to display during REVIEW mode.
 
 axes(handles.axes1);
 
 if int_curr_bbox > int_max_bboxes
     int_curr_chunk = int_curr_chunk + 1;
-    load_curr_chunk(handles)
+    load_curr_chunk(handles);
 else
     bool_is_paused = true;
 
@@ -153,7 +156,13 @@ else
             set(handles.text_review, 'String','.focc file does not exist.');
         else
             int_focc = fscanf(focc_file,'%d');
-            set(handles.text_review, 'String',sprintf('f_occ = %d',int_focc));
+            if int_view_only == 2 || int_focc == int_view_only || (int_view_only == 1 && int_focc>1)
+                set(handles.text_review, 'String',sprintf('f_occ = %d',int_focc));
+            else
+                int_curr_bbox = int_curr_bbox + 1;
+                load_curr_bbox(handles);
+                return;
+            end
         end
         % Then, seek to appropriate place - IF int_play_prev is defined.
         if int_play_prev>1 && int_focc> (int_start_frame + int_play_prev) 
@@ -178,9 +187,6 @@ else
         sprintf('Max Videos: %d        Max Chunks: %d        Max BBoxes: %d', ...
                 int_max_videos, int_max_chunks, int_max_bboxes));
     set(handles.text_info, 'String', 'Ready to play.');
-    
-    
-
 end
 
 
@@ -391,7 +397,7 @@ end
 
 if int_mode == 3 % REVIEW Mode
     if int_curr_frame == int_focc - int_play_prev
-        display_tracking_box(handles)
+        display_tracking_box(handles);
     end
 end
 
@@ -912,11 +918,15 @@ if int_mode == 3
     set(handles.text_tracklet_top, 'Visible','on')
     set(handles.button_play_prev, 'Visible','on')
     set(handles.edit_play_prev, 'Visible','on')
+    set(handles.button_view_only, 'Visible','on')
+    set(handles.edit_view_only, 'Visible','on')
 else
     set(handles.text_review, 'Visible','off')
     set(handles.text_tracklet_top, 'Visible','off')
     set(handles.button_play_prev, 'Visible','off')
     set(handles.edit_play_prev, 'Visible','off')
+    set(handles.button_view_only, 'Visible','off')
+    set(handles.edit_view_only, 'Visible','off')
 end
 uicontrol(handles.text_status);
 
@@ -944,7 +954,7 @@ function edit_play_prev_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global int_play_prev; % For review mode, play tracklets from f_occ - int_play_prev
 
-int_play_prev = str2num(get(handles.edit_play_prev,'String'))
+int_play_prev = str2num(get(handles.edit_play_prev,'String'));
 uicontrol(handles.text_status);
 
 
@@ -954,9 +964,6 @@ function edit_play_prev_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to edit_play_prev (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -971,4 +978,46 @@ function button_play_prev_Callback(hObject, eventdata, handles)
 global int_play_prev; % For review mode, play tracklets from f_occ - int_play_prev
 
 int_play_prev = str2num(get(handles.input,'String'));
+uicontrol(handles.text_status);
+
+
+
+function edit_view_only_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_view_only (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_view_only as text
+%        str2double(get(hObject,'String')) returns contents of edit_view_only as a double
+global int_view_only; % Ground truth tag examples to display. For review mode
+
+text = get(handles.edit_view_only,'String');
+if text=='ALL'
+    text = 2;
+end
+int_view_only = str2num(text);
+uicontrol(handles.text_status);
+
+% --- Executes during object creation, after setting all properties.
+function edit_view_only_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_view_only (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in button_view_only.
+function button_view_only_Callback(hObject, eventdata, handles)
+% hObject    handle to button_view_only (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global int_view_only; % Ground truth tag examples to display. For review mode
+
+text = get(handles.edit_view_only,'String');
+if text=='ALL'
+    text = 2;
+end
+int_view_only = str2num(text);
 uicontrol(handles.text_status);
