@@ -67,7 +67,7 @@ global int_mode; % maintains the mode. 1 = VIEW, 2 = ANNOTATE, 3 = REVIEW
 global int_play_prev;   % For review mode, play tracklets from f_occ - int_play_prev
 
 int_mode = 1;
-int_play_prev = 0;
+int_play_prev = 1;
 bool_show_track_box = false;
 
 bool_control_pressed = false;
@@ -155,10 +155,10 @@ else
             int_focc = fscanf(focc_file,'%d');
             set(handles.text_review, 'String',sprintf('f_occ = %d',int_focc));
         end
-        % Then, seek to appropriate place.
-        if int_focc> (int_start_frame + int_play_prev) 
+        % Then, seek to appropriate place - IF int_play_prev is defined.
+        if int_play_prev>1 && int_focc> (int_start_frame + int_play_prev) 
             int_curr_frame = int_focc - int_play_prev;
-            disp(sprintf('%d, %d, %d',int_curr_frame, int_focc, int_play_prev));
+            %disp(sprintf('%d, %d, %d',int_curr_frame, int_focc, int_play_prev));
         end
     end
     
