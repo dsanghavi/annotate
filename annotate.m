@@ -63,7 +63,7 @@ global bool_show_track_box; % Boolean, whether to display tracked boxes
 global bool_control_pressed;% Boolean, indicates if CTRL is currently pressed
 global bool_shift_pressed;  % Boolean, indicates if SHIFT is currently pressed
 global bool_alt_pressed;    % Boolean, indicates if ALT is currently pressed
-global int_mode; % maintains the mode. 1 = VIEW, 2 = ANNOTATE, 3 = REVIEW
+global int_mode; % maintains the mode. 1 = VIEW, 2 = ANNOTATE, 3 = REVIEW, 4 = 2-BOX REVIEW
 global int_play_prev;   % For review mode, play tracklets from f_occ - int_play_prev
 global int_view_only; % Ground truth tag examples to display. For review mode. 1 = any f_occ > 0. 2 = all. rest = itself.
 
@@ -135,10 +135,12 @@ global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
 global int_max_videos;  % maximum number of videos folder given by str_dir
 global arr_tracked_boxes;   % array with tracked box coordinates for each frame in chunk
 global str_boxdir;      % path of directory where .box files are stored
-global int_mode;        % 1=VIEW, 2=ANNOTATE, 3=REVIEW
+global int_mode;        % 1=VIEW, 2=ANNOTATE, 3=REVIEW, 4=2-BOX REVIEW
 global int_focc;        % Stores f_occ for current bbox
 global int_play_prev;   % For review mode, play tracklets from f_occ - int_play_prev
 global int_view_only;   % Tag examples to display during REVIEW mode.
+global arr_fortracked_boxes;
+global arr_revtracked_boxes;
 
 axes(handles.axes1);
 
@@ -169,6 +171,35 @@ else
             int_curr_frame = int_focc - int_play_prev;
             %disp(sprintf('%d, %d, %d',int_curr_frame, int_focc, int_play_prev));
         end
+    elseif int_mode == 4 % 2-BOX REVIEW
+        % First, read .fortrack and .revtrack files
+        fortrackfileslist = dir(fullfile(str_boxdir, sprintf('%s_%03d_*.fortrack',str_curr_chunk_name,int_curr_bbox)));
+        fortrackfiles = {fortrackfileslist.name};
+        clear fortrackfileslist;
+
+        if size(fortrackfiles) > 0
+            if size(fortrackfiles) > 1
+                disp('REMOVE ADDITIONAL .FORTRACK FILES');
+            end
+            
+            fortrackfile = fortrackfiles{1};
+        
+            [~,fortrackfilename,~] = fileparts(fortrackfile);
+            
+            int_start_frame = str2num(fortrackfilename(17:21))
+            int_end_frame = str2num(fortrackfilename(23:27))
+            int_focc = int_end_frame
+            int_curr_frame = int_start_frame
+
+            fortrackfile_full = fullfile(str_boxdir,sprintf('%s.fortrack',fortrackfilename));
+            arr_fortracked_boxes = dlmread(fortrackfile_full);
+            revtrackfile_full = fullfile(str_boxdir,sprintf('%s.revtrack',fortrackfilename));
+            arr_revtracked_boxes = dlmread(revtrackfile_full);
+        else
+            int_curr_bbox = int_curr_bbox + 1;
+            load_curr_bbox(handles);
+            return;
+        end
     end
     
     int_max_frames = int_end_frame;
@@ -176,7 +207,7 @@ else
     file_track = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
     arr_tracked_boxes = dlmread(file_track);
 
-    display_curr_frame(handles)
+    display_curr_frame(handles);
     
     display_dist_plot(handles);
     
@@ -377,7 +408,7 @@ global list_imFiles;    % cell of all image/frame filenames (e.g. self00021_0002
 global bool_show_track_box; % Boolean, whether to display tracked boxes
 global img_curr_frame;  % image array of current frame
 global int_start_frame; % first frame in the current chunk
-global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW
+global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW, 4=2-BOX REVIEW
 global int_focc;
 global int_play_prev;
 
@@ -425,7 +456,7 @@ global bool_shift_pressed;  % Boolean, indicates if SHIFT is currently pressed
 global bool_alt_pressed;    % Boolean, indicates if ALT is currently pressed
 global int_start_frame;     % first frame in the current chunk
 global bool_show_track_box; % Boolean, whether to display tracked boxes
-global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW
+global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW, 4=2-BOX REVIEW
 
 switch eventdata.Key
     case 'leftarrow'
@@ -550,7 +581,7 @@ global str_boxdir;          % path of directory where .box files are stored
 global int_curr_bbox;       % current bounding box
 global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
 global int_curr_frame;      % number of the frame currently in view
-global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW
+global int_mode;            % 1=VIEW, 2=ANNOTATE, 3=REVIEW, 4=2-BOX REVIEW
 
 if int_focc == 1
     int_focc = int_curr_frame;
@@ -720,6 +751,7 @@ global arr_dist_plot;   % array for L2 distances of DFs
 global int_focc;        % Stores f_occ for current bbox
 global int_start_frame; % first frame in the current chunk
 global int_end_frame;   % last frame in the current chunk
+global int_mode;
 
 axes(handles.axes3); % revert to one at the end
 
@@ -728,6 +760,13 @@ arr_dist_plot = dlmread(distFile);
 
 arr_dist_plot = [0; arr_dist_plot]; % add a 0 in the beginning
 x = int_start_frame:1:int_end_frame;
+
+if int_mode == 4
+    int_chunk_start = str2num(str_curr_chunk_name(1:5));
+    int_chunk_end = str2num(str_curr_chunk_name(7:11));
+%     arr_dist_plot = arr_dist_plot(1+int_start_frame-int_chunk_start:1+int_end_frame-int_chunk_start);
+    x = int_chunk_start:1:int_chunk_end;
+end
 
 plot(x,arr_dist_plot);
 
@@ -819,26 +858,41 @@ global int_start_frame; % first frame in the current chunk
 global str_boxdir;      % path of directory where .box files are stored
 global int_curr_bbox;   % current bounding box
 global str_curr_chunk_name; % current chunk name (e.g. '00001_00500')
-
-trackFile = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
-trackBoxes = dlmread(trackFile);
+global arr_tracked_boxes;
+global int_mode;
+global arr_fortracked_boxes;
+global arr_revtracked_boxes;
 
 trackframe = int_curr_frame-int_start_frame+1;
 
-redbox = trackBoxes(trackframe,:);
-yelbox = [redbox(1)-1,redbox(2)-1,redbox(3)+2,redbox(4)+2];
+if int_mode==4
+    rectangle('Position',arr_fortracked_boxes(trackframe,:),...
+              'EdgeColor', 'r',...
+              'LineStyle','-',...
+              'LineWidth',3);
+    rectangle('Position',arr_revtracked_boxes(trackframe,:),...
+              'EdgeColor', 'g',...
+              'LineStyle','-',...
+              'LineWidth',3);
+else
+%     trackFile = fullfile(str_boxdir, sprintf('%s_%03d.track',str_curr_chunk_name,int_curr_bbox));
+%     trackBoxes = dlmread(trackFile);
 
-rectangle('Position',yelbox,...
-          'EdgeColor', 'y',...
-          'LineStyle','-',...
-          'LineWidth',2);
-rectangle('Position',redbox,...
-          'EdgeColor', 'r',...
-          'LineStyle','-',...
-          'LineWidth',1);
+    redbox = arr_tracked_boxes(trackframe,:);
+    yelbox = [redbox(1)-1,redbox(2)-1,redbox(3)+2,redbox(4)+2];
 
-% display in tracklet also
-display_tracking_box_in_tracklet(handles)
+    rectangle('Position',yelbox,...
+              'EdgeColor', 'y',...
+              'LineStyle','-',...
+              'LineWidth',2);
+    rectangle('Position',redbox,...
+              'EdgeColor', 'r',...
+              'LineStyle','-',...
+              'LineWidth',1);
+
+    % display in tracklet also
+    display_tracking_box_in_tracklet(handles)
+end
 
 
 
@@ -949,7 +1003,7 @@ function listbox_mode_Callback(hObject, eventdata, handles)
 % hObject    handle to listbox_mode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global int_mode; % 0 for VIEW, 1 for ANNOTATE, 2 for REVIEW
+global int_mode; % 1 for VIEW, 2 for ANNOTATE, 3 for REVIEW, 4 for 2-BOX REVIEW
 
 %contents = cellstr(get(hObject,'String')); % returns listbox_mode contents
 %as cell array. Can access index-wise to get the string selected.
@@ -993,7 +1047,7 @@ function listbox_mode_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-modes = {'VIEW Mode','ANNOTATE Mode','REVIEW Mode'};
+modes = {'VIEW Mode','ANNOTATE Mode','REVIEW Mode', '2-BOX REVIEW Mode'};
 set(hObject, 'String', modes);
 
 
