@@ -542,7 +542,7 @@ switch eventdata.Key
     case 'b'
         enter_pressed(handles,-2);
     otherwise
-        disp(eventdata.Key); % remove after dev.
+        %disp(eventdata.Key); % remove after dev.
 end
 %downarrow
 %uparrow
@@ -1003,7 +1003,9 @@ function listbox_mode_Callback(hObject, eventdata, handles)
 % hObject    handle to listbox_mode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
 global int_mode; % 1 for VIEW, 2 for ANNOTATE, 3 for REVIEW, 4 for 2-BOX REVIEW
+global int_focc;        % Stores f_occ for current bbox
 
 %contents = cellstr(get(hObject,'String')); % returns listbox_mode contents
 %as cell array. Can access index-wise to get the string selected.
@@ -1023,14 +1025,17 @@ if int_mode == 3
     set(handles.button_view_only, 'Visible','on')
     set(handles.edit_view_only, 'Visible','on')
 %    set(handles.axes3, 'Visible','on')
+%    set(handles.axes1, 'OuterPosition', [-0.106 0.195 0.933 0.734])
 else
+    int_focc = 0;
     set(handles.text_review, 'Visible','off')
     set(handles.text_tracklet_top, 'Visible','off')
     set(handles.button_play_prev, 'Visible','off')
     set(handles.edit_play_prev, 'Visible','off')
     set(handles.button_view_only, 'Visible','off')
     set(handles.edit_view_only, 'Visible','off')
-%    set(handles.axes3, 'Visible','off')
+%    set(handles.axes3, 'Visible','off') % BUG - comes on for the next bbox load
+%    set(handles.axes1, 'OuterPosition', [-0.106 0.195 0.933 0.824])
 end
 uicontrol(handles.text_status);
 
