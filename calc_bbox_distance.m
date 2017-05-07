@@ -1,7 +1,7 @@
-function [ dist_l2 ] = calc_bbox_distance(bbox,bbox_past,frame,frame_past)
+function dist_l2 = calc_bbox_distance(bbox,bbox_past,frame,frame_past)
     %% returns the L2 distance of the bboxes in 2 frames
-    im1 = imcrop(frame,bbox);
-    im2 = imcrop(frame_past,bbox_past);
+    im1 = im2double(imcrop(frame,bbox));
+    im2 = im2double(imcrop(frame_past,bbox_past));
     
 %     imshow(im1);
 %     pause(3);
@@ -16,7 +16,7 @@ function [ dist_l2 ] = calc_bbox_distance(bbox,bbox_past,frame,frame_past)
 %     dist
     %disp(dist);
     
-    big=8;
+    big=8; % HAS TO BE EVEN % PREVIOUSLY USED 8 TO OBTAIN OCCLUDER BOX
     small=big/2;
     
     [hh,ww,~] = size(im1);

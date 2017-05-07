@@ -18,7 +18,7 @@ for sNum = seqStart:seqEnd
     imFiles = {imageList.name};
     clear imageList;
 
-    [h, w, ~] = size(imread(imFiles{1}));
+    [h, w, ~] = size(imread(fullfile(imDir,imFiles{1})));
     
     boxdir = fullfile(imDir,'bboxes');
     chunklist = dir(fullfile(boxdir, '*.box'));
@@ -187,7 +187,7 @@ end
 
 
 %% display
-if debug || true
+if debug %|| true
     for sNum = seqStart:seqEnd
         seq_name = sprintf('self%05d',sNum);
         imDir = sprintf('/home/is/Occlusion Video Data/self shot/%s', seq_name);

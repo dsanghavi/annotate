@@ -83,10 +83,10 @@ frame_past = imread(fullfile(imDir,imFiles{past_bbox_frame+minFrame-1}));
 % imshow(frame_past);
 % pause(3);
 
-[dist_left_l2] = calc_bbox_distance(bbox_left,bbox_left_past,frame,frame_past);
-[dist_right_l2] = calc_bbox_distance(bbox_right,bbox_right_past,frame,frame_past);
-[dist_up_l2] = calc_bbox_distance(bbox_up,bbox_up_past,frame,frame_past);
-[dist_down_l2] = calc_bbox_distance(bbox_down,bbox_down_past,frame,frame_past);
+dist_left_l2 = calc_bbox_distance(bbox_left,bbox_left_past,frame,frame_past);
+dist_right_l2 = calc_bbox_distance(bbox_right,bbox_right_past,frame,frame_past);
+dist_up_l2 = calc_bbox_distance(bbox_up,bbox_up_past,frame,frame_past);
+dist_down_l2 = calc_bbox_distance(bbox_down,bbox_down_past,frame,frame_past);
 
 
 % Normalize
