@@ -1,11 +1,14 @@
 % This script will generate clips with two initial bounding boxes on
 % patches. One patch will eventually occlude the other.
 
-debug = true;
+debug = false;
 
-pad = 0;
+if_use_minus_something = false; % to use minus something frame instead of first to compare
+compare_past_by = 20; % matter only if if_use_minus_something is true
 
-seqStart = 12;
+pad = 100;
+
+seqStart = 1;
 seqEnd = 46;
 
 if debug
@@ -14,6 +17,12 @@ end
 
 %%
 for sNum = seqStart:seqEnd
+    
+    if mod(sNum, 10) == 1
+        fprintf('\n');
+    end
+    fprintf('%02d ',sNum);
+    
     seq_name = sprintf('self%05d',sNum);
     imDir = sprintf('/home/is/Occlusion Video Data/self shot/%s', seq_name);
     imageList = dir(fullfile(imDir, '*.jpg'));
@@ -48,7 +57,7 @@ for sNum = seqStart:seqEnd
         for bbox_i = 1:1:size(bboxes,1)
             
             % DEBUG; REMOVE LATER
-            if bbox_i ~= 3 && debug
+            if bbox_i ~= 4 && debug
                 continue;
             end
             
@@ -60,28 +69,43 @@ for sNum = seqStart:seqEnd
 
                 im_dists = zeros(size(trackboxes));
                 
-                bbox_first = trackboxes(1,:);
+                has_not_run_before = true;
                 
-                frame_first = imread(fullfile(imDir,imFiles{minFrame}));
-                frame_first = padarray(frame_first, [pad,pad], 0, 'both');
-                
-                x_first = bbox_first(1);
-                y_first = bbox_first(2);
-                w_first = bbox_first(3);
-                h_first = bbox_first(4);
+                for frame_i = minFrame:1:maxFrame
+                    
+                    if if_use_minus_something || has_not_run_before
+                        % FOR FRAME TO COMPARE WITH
+                        if ~if_use_minus_something || frame_i <= compare_past_by
+                            prior_frame_index = 1;
+                        else
+                            prior_frame_index = frame_i - compare_past_by;
+                        end
 
-                x_first = x_first-floor(w_first/2) + pad;
-                y_first = y_first-floor(h_first/2) + pad;
-                w_first = 2*w_first;
-                h_first = 2*h_first;
-                % TODO Check if it crosses image boundary?
+                        bbox_first = trackboxes(prior_frame_index,:);
 
-                bbox_left_first = [x_first,y_first,floor(w_first/2),h_first];
-                bbox_right_first = [x_first+floor(w_first/2),y_first,floor(w_first/2),h_first];
-                bbox_up_first = [x_first,y_first,w_first,floor(h_first/2)];
-                bbox_down_first = [x_first,y_first+floor(h_first/2),w_first,floor(h_first/2)];
+                        frame_first = imread(fullfile(imDir,imFiles{minFrame+prior_frame_index-1}));
+                        frame_first = padarray(frame_first, [pad,pad], 0, 'both');
 
-                for frame_i = minFrame+1:1:maxFrame
+                        x_first = bbox_first(1);
+                        y_first = bbox_first(2);
+                        w_first = bbox_first(3);
+                        h_first = bbox_first(4);
+
+                        x_first = x_first-floor(w_first/2) + pad;
+                        y_first = y_first-floor(h_first/2) + pad;
+                        w_first = 2*w_first;
+                        h_first = 2*h_first;
+                        % TODO Check if it crosses image boundary?
+
+                        bbox_left_first = [x_first,y_first,floor(w_first/2),h_first];
+                        bbox_right_first = [x_first+floor(w_first/2),y_first,floor(w_first/2),h_first];
+                        bbox_up_first = [x_first,y_first,w_first,floor(h_first/2)];
+                        bbox_down_first = [x_first,y_first+floor(h_first/2),w_first,floor(h_first/2)];
+                        
+                        has_not_run_before = false;
+                    end
+
+                    % FOR FRAME TO COMPARE (I.E. CURRENT)
                     bbox = trackboxes(frame_i-minFrame+1,:);
                     
                     frame = imread(fullfile(imDir,imFiles{frame_i-minFrame+1}));
@@ -111,6 +135,8 @@ for sNum = seqStart:seqEnd
                     
                     im_dists(frame_i-minFrame+1, :) = [dist_left_l2, dist_right_l2, dist_up_l2, dist_down_l2];
                 end
+                
+                dlmwrite(fullfile(boxdir,sprintf('%s_%03d.4boxdist',chunk_name,bbox_i)),im_dists);
             end
         end
     end
@@ -118,9 +144,11 @@ end
 
 
 %% plot
-x = minFrame:1:maxFrame;
+if debug
+    x = minFrame:1:maxFrame;
 
-plot(x,im_dists(:,1),'Color','r'); hold on;
-plot(x,im_dists(:,2),'Color','g'); hold on;
-plot(x,im_dists(:,3),'Color','b'); hold on;
-plot(x,im_dists(:,4),'Color','k');
+    plot(x,im_dists(:,1),'Color','r'); hold on;
+    plot(x,im_dists(:,2),'Color','g'); hold on;
+    plot(x,im_dists(:,3),'Color','b'); hold on;
+    plot(x,im_dists(:,4),'Color','k');
+end

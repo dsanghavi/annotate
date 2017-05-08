@@ -752,13 +752,26 @@ global int_focc;        % Stores f_occ for current bbox
 global int_start_frame; % first frame in the current chunk
 global int_end_frame;   % last frame in the current chunk
 global int_mode;
+global arr_dist_plot_4box;
+global dist_max;
+global focc_line_handle;
 
 axes(handles.axes3); % revert to one at the end
 
+try
+    delete(focc_line_handle);
+catch
+end
+
 distFile = fullfile(str_boxdir, sprintf('%s_%03d_df.dist',str_curr_chunk_name,int_curr_bbox));
 arr_dist_plot = dlmread(distFile);
-
 arr_dist_plot = [0; arr_dist_plot]; % add a 0 in the beginning
+arr_dist_plot = arr_dist_plot ./ max(arr_dist_plot);
+
+distFile_4box = fullfile(str_boxdir, sprintf('%s_%03d.4boxdist',str_curr_chunk_name,int_curr_bbox));
+arr_dist_plot_4box = dlmread(distFile_4box);
+arr_dist_plot_4box = arr_dist_plot_4box ./ max(max(arr_dist_plot_4box));
+
 x = int_start_frame:1:int_end_frame;
 
 if int_mode == 4
@@ -768,10 +781,16 @@ if int_mode == 4
     x = int_chunk_start:1:int_chunk_end;
 end
 
-plot(x,arr_dist_plot);
+plot(x,arr_dist_plot,'y'); hold on;
+plot(x,arr_dist_plot_4box(:,1),'r'); hold on;
+plot(x,arr_dist_plot_4box(:,2),'g'); hold on;
+plot(x,arr_dist_plot_4box(:,3),'b'); hold on;
+plot(x,arr_dist_plot_4box(:,4),'k'); hold off;
 
-if int_focc > 0
-    line([int_focc int_focc],[0 1],'Color','r');
+dist_max = max(max(arr_dist_plot_4box));
+
+if int_focc > 0 && int_mode ~= 1
+    focc_line_handle = line([int_focc int_focc],[0 dist_max],'Color','r');
 end
 
 axes(handles.axes1);
@@ -782,6 +801,7 @@ function display_current_frame_line_in_plot(handles)
 
 global int_curr_frame;  % number of the frame currently in view
 global line_handle;     % line handle for current frame line
+global dist_max;
 
 axes(handles.axes3); % revert to one at the end
 
@@ -789,7 +809,7 @@ try
     delete(line_handle);
 catch
 end
-line_handle = line([int_curr_frame int_curr_frame],[0 1],'Color','k');
+line_handle = line([int_curr_frame int_curr_frame],[0 dist_max],'Color','k');
 
 axes(handles.axes1);
 
