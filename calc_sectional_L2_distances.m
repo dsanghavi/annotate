@@ -37,7 +37,7 @@ for sNum = seqStart:seqEnd
     for chunk_i = 1:1:size(chunkfiles,2)
         
         % DEBUG; REMOVE LATER
-        if chunk_i ~= 1 && debug
+        if chunk_i ~= 2 && debug
             continue;
         end
         
@@ -66,51 +66,39 @@ for sNum = seqStart:seqEnd
                 trackboxes = dlmread(fullfile(boxdir,sprintf('%s_%03d.track',chunk_name,bbox_i)));
 
                 im_dists = zeros(size(trackboxes,1),2*size(trackboxes,2));
-                
-                has_not_run_before = true;
+                               
+                % FOR FRAME TO COMPARE WITH
+                bbox_first = trackboxes(1,:);
+
+                frame_first = imread(fullfile(imDir,imFiles{minFrame}));
+                frame_first = padarray(frame_first, [pad,pad], 0, 'both');
+
+                x_first = bbox_first(1) + pad;
+                y_first = bbox_first(2) + pad;
+                w_first = bbox_first(3);
+                h_first = bbox_first(4);
+
+                x_first_doubled = x_first-floor(w_first/2);
+                y_first_doubled = y_first-floor(h_first/2);
+                w_first_doubled = 2*w_first;
+                h_first_doubled = 2*h_first;
+
+                bbox_left_first = [x_first,y_first,floor(w_first/2),h_first];
+                bbox_right_first = [x_first+floor(w_first/2),y_first,floor(w_first/2),h_first];
+                bbox_up_first = [x_first,y_first,w_first,floor(h_first/2)];
+                bbox_down_first = [x_first,y_first+floor(h_first/2),w_first,floor(h_first/2)];
+
+                bbox_left_first_doubled = [x_first_doubled,y_first_doubled,floor(w_first_doubled/2),h_first_doubled];
+                bbox_right_first_doubled = [x_first_doubled+floor(w_first_doubled/2),y_first_doubled,floor(w_first_doubled/2),h_first_doubled];
+                bbox_up_first_doubled = [x_first_doubled,y_first_doubled,w_first_doubled,floor(h_first_doubled/2)];
+                bbox_down_first_doubled = [x_first_doubled,y_first_doubled+floor(h_first_doubled/2),w_first_doubled,floor(h_first_doubled/2)];
                 
                 for frame_i = minFrame:1:maxFrame
-                    
-                    if if_use_minus_something || has_not_run_before
-                        % FOR FRAME TO COMPARE WITH
-                        if ~if_use_minus_something || frame_i <= compare_past_by
-                            prior_frame_index = 1;
-                        else
-                            prior_frame_index = frame_i - compare_past_by;
-                        end
-
-                        bbox_first = trackboxes(prior_frame_index,:);
-
-                        frame_first = imread(fullfile(imDir,imFiles{minFrame+prior_frame_index-1}));
-                        frame_first = padarray(frame_first, [pad,pad], 0, 'both');
-
-                        x_first = bbox_first(1) + pad;
-                        y_first = bbox_first(2) + pad;
-                        w_first = bbox_first(3);
-                        h_first = bbox_first(4);
-
-                        x_first_doubled = x_first-floor(w_first/2);
-                        y_first_doubled = y_first-floor(h_first/2);
-                        w_first_doubled = 2*w_first;
-                        h_first_doubled = 2*h_first;
-
-                        bbox_left_first = [x_first,y_first,floor(w_first/2),h_first];
-                        bbox_right_first = [x_first+floor(w_first/2),y_first,floor(w_first/2),h_first];
-                        bbox_up_first = [x_first,y_first,w_first,floor(h_first/2)];
-                        bbox_down_first = [x_first,y_first+floor(h_first/2),w_first,floor(h_first/2)];
-                        
-                        bbox_left_first_doubled = [x_first_doubled,y_first_doubled,floor(w_first_doubled/2),h_first_doubled];
-                        bbox_right_first_doubled = [x_first_doubled+floor(w_first_doubled/2),y_first_doubled,floor(w_first_doubled/2),h_first_doubled];
-                        bbox_up_first_doubled = [x_first_doubled,y_first_doubled,w_first_doubled,floor(h_first_doubled/2)];
-                        bbox_down_first_doubled = [x_first_doubled,y_first_doubled+floor(h_first_doubled/2),w_first_doubled,floor(h_first_doubled/2)];
-                        
-                        has_not_run_before = false;
-                    end
 
                     % FOR FRAME TO COMPARE (I.E. CURRENT)
                     bbox = trackboxes(frame_i-minFrame+1,:);
                     
-                    frame = imread(fullfile(imDir,imFiles{frame_i-minFrame+1}));
+                    frame = imread(fullfile(imDir,imFiles{frame_i}));
                     frame = padarray(frame, [pad,pad], 0, 'both');
                     
                     x = bbox(1) + pad;
@@ -124,10 +112,10 @@ for sNum = seqStart:seqEnd
                     w_doubled = 2*w;
                     h_doubled = 2*h;
 
-                    bbox_left = [x,y,floor(w/2),h];
-                    bbox_right = [x+floor(w/2),y,floor(w/2),h];
-                    bbox_up = [x,y,w,floor(h/2)];
-                    bbox_down = [x,y+floor(h/2),w,floor(h/2)];
+                    bbox_left  = [x,            y,            floor(w/2), h];
+                    bbox_right = [x+floor(w/2), y,            floor(w/2), h];
+                    bbox_up    = [x,            y,            w,          floor(h/2)];
+                    bbox_down  = [x,            y+floor(h/2), w,          floor(h/2)];
                     
                     bbox_left_doubled = [x_doubled,y_doubled,floor(w_doubled/2),h_doubled];
                     bbox_right_doubled = [x_doubled+floor(w_doubled/2),y_doubled,floor(w_doubled/2),h_doubled];

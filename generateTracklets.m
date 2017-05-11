@@ -15,7 +15,7 @@ global bool_generate_video;
 global bool_generate_images;
 global bool_display_images;
 
-seqStart = 1;
+seqStart = 46;
 seqEnd = 46;
 
 int_track_box_buffer    = 50; % CHANGED to +50% of box size, upto max of 50
@@ -53,6 +53,10 @@ for sNum = seqStart:seqEnd
         
         int_start_frame = str2num(track_name(1:5));
         int_end_frame = str2num(track_name(7:11));
+        
+        if int_start_frame ~= 751
+            continue;
+        end
         
         if bool_generate_video
             videofile = fullfile(trackletsavedir,sprintf('%s_trklt.avi',track_name));

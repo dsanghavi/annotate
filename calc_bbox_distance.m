@@ -3,8 +3,10 @@ function dist_l2 = calc_bbox_distance(bbox,bbox_past,frame,frame_past)
     im1 = im2double(imcrop(frame,bbox));
     im2 = im2double(imcrop(frame_past,bbox_past));
     
+%     figure(1);
 %     imshow(im1);
 %     pause(3);
+%     figure(2);
 %     imshow(im2);
 %     pause(3);
 

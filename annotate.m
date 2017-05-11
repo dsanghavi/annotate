@@ -785,7 +785,11 @@ plot(x,arr_dist_plot,'y'); hold on;
 plot(x,arr_dist_plot_4box(:,1),'r'); hold on;
 plot(x,arr_dist_plot_4box(:,2),'g'); hold on;
 plot(x,arr_dist_plot_4box(:,3),'b'); hold on;
-plot(x,arr_dist_plot_4box(:,4),'k'); hold off;
+plot(x,arr_dist_plot_4box(:,4),'k'); hold on;
+plot(x,arr_dist_plot_4box(:,5),'r--'); hold on;
+plot(x,arr_dist_plot_4box(:,6),'g--'); hold on;
+plot(x,arr_dist_plot_4box(:,7),'b--'); hold on;
+plot(x,arr_dist_plot_4box(:,8),'k--'); hold off;
 
 dist_max = max(max(arr_dist_plot_4box));
 

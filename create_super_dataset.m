@@ -11,8 +11,9 @@ if debug
 end
 
 %%
-dataset = []; % empty
+datafeatures = []; % empty
 datanames = []; % empty
+datalabels = []; % empty
 
 for sNum = seqStart:seqEnd
     
@@ -73,19 +74,31 @@ for sNum = seqStart:seqEnd
                 fprintf('Invalid data size. Video: %s, Chunk: %s, Bbox: %d', seq_name, chunk_name, bbox_i);
             end
             
-            dataset = [dataset; data(:)'];
+            datafeatures = [datafeatures; data(:)'];
             datanames = [datanames; [sNum, chunk_i, bbox_i]];
+            
+            focc = dlmread(fullfile(boxdir,sprintf('%s_%03d.focc',chunk_name,bbox_i)));
+            if focc > 0
+                focc = 1;
+            elseif focc == -1
+                focc = 2;
+            elseif focc == -2
+                focc = 3;
+            end
+            datalabels = [datalabels; focc];
         end
     end
 end
 
 [~,name,~] = fileparts(fileparts(imDir));
 if name == 'self shot'
-    dlmwrite(fullfile(fileparts(imDir),'self.dataset'),dataset);
+    dlmwrite(fullfile(fileparts(imDir),'self.datafeatures'),datafeatures);
     dlmwrite(fullfile(fileparts(imDir),'self.datanames'),datanames);
+    dlmwrite(fullfile(fileparts(imDir),'self.datalabels'),datalabels);
 elseif name == 'from web'
-    dlmwrite(fullfile(fileparts(imDir),'web.dataset'),dataset);
+    dlmwrite(fullfile(fileparts(imDir),'web.datafeatures'),datafeatures);
     dlmwrite(fullfile(fileparts(imDir),'web.datanames'),datanames);
+    dlmwrite(fullfile(fileparts(imDir),'web.datalabels'),datalabels);
 end
 
 fprintf('\n\n');
