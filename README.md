@@ -1,5 +1,5 @@
 # annotate
 
-Given an image, annotate it. Manual for now. Moving toward automation.
+To run, open annotate.fig using MATLAB and run.
 
 For more details, see project report pdf file. 
